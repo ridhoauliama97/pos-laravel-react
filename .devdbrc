@@ -1,0 +1,6 @@
+[
+  {
+    "type": "sqlite",
+    "path": "d:\\Projects\\FullStack\\pos\\backend\\database\\database.sqlite"
+  }
+]
