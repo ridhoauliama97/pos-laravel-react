@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
@@ -49,6 +50,29 @@ class AuthController extends Controller
                 'token' => $token,
             ],
             'message' => 'Login berhasil',
+        ]);
+    }
+
+    public function company()
+    {
+        $tenant = Tenant::where('status', 'active')->first();
+
+        if (!$tenant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant tidak ditemukan',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'name' => $tenant->name,
+                'logo' => $tenant->logo,
+                'currency' => $tenant->currency,
+                'currency_symbol' => $tenant->currency_symbol,
+            ],
+            'message' => 'Data perusahaan',
         ]);
     }
 

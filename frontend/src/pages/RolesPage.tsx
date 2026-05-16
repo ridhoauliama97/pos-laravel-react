@@ -2,7 +2,7 @@ import { useT } from "../i18n";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
-import { Plus, Edit, Trash2, Shield, Lock, Search, Check, LayoutGrid, List, AlertTriangle, CheckSquare, LayoutDashboard, Package, Layers, Truck, Users, ShoppingCart, History, BarChart3, Settings, Warehouse, Ticket, GitMerge } from "lucide-react";
+import { Plus, Edit, Trash2, Shield, Lock, Search, Check, LayoutGrid, List, AlertTriangle, CheckSquare, LayoutDashboard, Package, Layers, Truck, Users, ShoppingCart, History, BarChart3, Settings, Warehouse, Ticket, GitMerge } from "../components/icons";
 import { useState, useMemo } from "react";
 import type { Role, Permission } from "../types";
 import { usePermissions } from "../hooks/usePermissions";

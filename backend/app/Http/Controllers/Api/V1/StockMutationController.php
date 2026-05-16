@@ -14,7 +14,7 @@ class StockMutationController extends Controller
 
     public function index(Request $request)
     {
-        $query = StockMutation::with(['product', 'variant', 'user'])
+        $query = StockMutation::with(['product', 'variant', 'user', 'toBranch'])
             ->where('tenant_id', $request->tenant_id)
             ->where('branch_id', $request->branch_id);
 
@@ -61,6 +61,7 @@ class StockMutationController extends Controller
             'type' => 'required|in:in,out',
             'qty' => 'required|integer|min:1',
             'note' => 'required|string',
+            'to_branch_id' => 'required_if:type,out|exists:branches,id',
         ]);
 
         $this->inventoryService->adjustStock(
@@ -72,6 +73,7 @@ class StockMutationController extends Controller
             $data['type'],
             $data['qty'],
             $data['note'],
+            $data['to_branch_id'] ?? null,
         );
 
         Cache::forget('r:stock:' . $request->tenant_id . ':' . $request->branch_id);

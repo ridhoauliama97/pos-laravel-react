@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
-import { Plus, Edit, Trash2, Tag, LayoutGrid, List, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash2, Tag, LayoutGrid, List, AlertTriangle } from "../components/icons";
 import { useState } from "react";
 import { useT } from "../i18n";
 import { usePermissions } from "../hooks/usePermissions";
@@ -404,7 +404,7 @@ export default function CategoriesPage() {
 
       <Modal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => { setShowModal(false); setEditingId(null); setName(""); }}
         title={editingId ? t("categories.editTitle") : t("categories.addTitle")}
         size="sm"
         footer={

@@ -19,6 +19,7 @@ class SupplierRequest extends FormRequest
             'email' => 'nullable|email',
             'address' => 'nullable|string',
             'opening_balance' => 'nullable|numeric|min:0',
+            'is_active' => 'nullable|boolean',
         ];
     }
 }

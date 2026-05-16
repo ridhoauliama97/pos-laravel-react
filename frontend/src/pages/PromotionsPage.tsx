@@ -2,13 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
 import { formatCurrency, formatDate } from "../lib/utils";
 import toast from "react-hot-toast";
-import { Plus, Edit, Trash2, Percent, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Percent, Tag } from "../components/icons";
 import { useState } from "react";
 import type { Promotion, Category } from "../types";
 import { useT } from "../i18n";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
 import { Modal } from "../components/Modal";
+import { SearchSelect } from "../components/SearchSelect";
 
 export default function PromotionsPage() {
   const t = useT();
@@ -321,20 +322,14 @@ export default function PromotionsPage() {
               className="form-input"
             />
           </div>
+          <SearchSelect
+            label={t("promotions.form.category")}
+            options={categories}
+            value={form.category_id}
+            onChange={(v) => setForm({ ...form, category_id: v })}
+            placeholder={t("common.all")}
+          />
           <div className="form-group">
-            <label className="form-label">{t("promotions.form.category")}</label>
-            <select
-              value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-              className="form-select"
-            >
-              <option value="">{t("common.all")}</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={String(cat.id)}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
             <p
               style={{
                 fontSize: ".6875rem",

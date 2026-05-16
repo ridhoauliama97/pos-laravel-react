@@ -32,6 +32,9 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'categories.view', 'display_name' => 'Lihat Kategori', 'group' => 'Kategori'],
             ['name' => 'categories.manage', 'display_name' => 'Kelola Kategori', 'group' => 'Kategori'],
 
+            // Units
+            ['name' => 'units.manage', 'display_name' => 'Kelola Unit', 'group' => 'Unit'],
+
             // Customers
             ['name' => 'customers.view', 'display_name' => 'Lihat Pelanggan', 'group' => 'Pelanggan'],
             ['name' => 'customers.create', 'display_name' => 'Tambah Pelanggan', 'group' => 'Pelanggan'],

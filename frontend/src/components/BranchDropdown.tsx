@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "../stores";
-import { Check, ChevronDown, Building2 } from "lucide-react";
+import { Check, ChevronDown, Building2 } from "./icons";
 
 export default function BranchDropdown() {
   const [open, setOpen] = useState(false);

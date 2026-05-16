@@ -4,7 +4,7 @@ import { useAuthStore } from "../stores";
 import { setCurrency, setFavicon } from "../lib/utils";
 import { setAppLanguage, useT } from "../i18n";
 import { useState, useEffect } from "react";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2 } from "../components/icons";
 import toast from "react-hot-toast";
 
 const CURRENCY_NAMES: Record<string, string> = {

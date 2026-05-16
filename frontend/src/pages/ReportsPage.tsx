@@ -14,7 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
-} from "lucide-react";
+} from "../components/icons";
 import type { Transaction } from "../types";
 import {
   BarChart,

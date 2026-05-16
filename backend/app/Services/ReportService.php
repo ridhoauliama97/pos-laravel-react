@@ -120,13 +120,13 @@ class ReportService
                 ->where('tenant_id', $tenantId)
                 ->where('is_active', true)
                 ->where('min_stock', '>', 0)
-                ->whereRaw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_id = products.id) <= min_stock')
+                ->whereRaw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_id = products.id) + COALESCE(products.stock, 0) <= min_stock')
                 ->count();
 
             $outOfStock = DB::table('products')
                 ->where('tenant_id', $tenantId)
                 ->where('is_active', true)
-                ->whereRaw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_id = products.id) = 0')
+                ->whereRaw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_id = products.id) + COALESCE(products.stock, 0) = 0')
                 ->count();
 
             return [

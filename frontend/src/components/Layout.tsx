@@ -24,7 +24,7 @@ import {
   PanelLeftOpen,
   Home,
   ChevronRight,
-} from "lucide-react";
+} from "./icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore, useCartStore } from "../stores";
@@ -37,7 +37,7 @@ import UserMenu from "./UserMenu";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
 
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "./icons";
 
 interface NavItem {
   to: string;

@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import toast from "react-hot-toast";
 import {
   Plus,
+  Search,
   Edit,
   Trash2,
   Users,
@@ -11,8 +12,9 @@ import {
   List,
   AlertTriangle,
   Eye,
-} from "lucide-react";
+} from "../components/icons";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { User, Role, UserActivityLog } from "../types";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
@@ -36,17 +38,9 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function UsersPage() {
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "kasir",
-    branch_id: "",
-    is_active: true,
-  });
-
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -56,13 +50,19 @@ export default function UsersPage() {
   const [activityPage, setActivityPage] = useState(1);
 
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const t = useT();
   const { hasPermission } = usePermissions();
   const canManage = hasPermission(PERMISSIONS.SETTINGS_USERS);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["users"],
-    queryFn: () => api.get<User[]>("/users"),
+    queryKey: ["users", search, roleFilter, statusFilter],
+    queryFn: () => {
+      const params = new URLSearchParams({ search });
+      if (roleFilter) params.set("role", roleFilter);
+      if (statusFilter) params.set("is_active", statusFilter);
+      return api.get<User[]>(`/users?${params}`);
+    },
   });
 
   const { data: activityData } = useQuery({
@@ -74,17 +74,12 @@ export default function UsersPage() {
     enabled: !!activityUserId,
   });
 
-  const { data: branchesData } = useQuery({
-    queryKey: ["branches"],
-    queryFn: () => api.get<any[]>("/branches"),
-  });
   const { data: rolesData } = useQuery({
     queryKey: ["roles"],
     queryFn: () => api.get<Role[]>("/roles"),
   });
 
   const users = data?.data || [];
-  const branches = branchesData?.data || [];
   const roles = rolesData?.data || [];
 
   const activeLog = activityUserId
@@ -92,26 +87,6 @@ export default function UsersPage() {
     : null;
   const activityLogs = activityData?.data || [];
   const activityMeta = activityData?.meta;
-
-  const saveMutation = useMutation({
-    mutationFn: (d: any) =>
-      editingId ? api.put(`/users/${editingId}`, d) : api.post("/users", d),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      setShowModal(false);
-      setEditingId(null);
-      setForm({
-        name: "",
-        email: "",
-        password: "",
-        role: "kasir",
-        branch_id: "",
-        is_active: true,
-      });
-      toast.success(editingId ? t("users.updated") : t("users.created"));
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/users/${id}`),
@@ -249,24 +224,61 @@ export default function UsersPage() {
               </button>
             )}
             <button
-              onClick={() => {
-                setEditingId(null);
-                setForm({
-                  name: "",
-                  email: "",
-                  password: "",
-                  role: "kasir",
-                  branch_id: "",
-                  is_active: true,
-                });
-                setShowModal(true);
-              }}
+              onClick={() => navigate("/settings/users/new")}
               className="btn btn-primary"
             >
               <Plus className="w-4 h-4" /> {t("users.add")}
             </button>
           </div>
         )}
+      </div>
+
+      <div
+        className="actions-row"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "1rem",
+          gap: "1rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <div className="search-wrap" style={{ maxWidth: "18rem", flexGrow: 1 }}>
+          <Search className="w-4 h-4" />
+          <input
+            type="text"
+            placeholder={t("users.searchPlaceholder")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap", alignItems: "center" }}>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="form-select"
+            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 2rem .35rem .75rem" }}
+          >
+            <option value="">{t("users.filters.allRoles")}</option>
+            {roles.map((r: Role) => (
+              <option key={r.name} value={r.name}>{r.display_name}</option>
+            ))}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="form-select"
+            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 2rem .35rem .75rem" }}
+          >
+            <option value="">{t("users.filters.allStatus")}</option>
+            <option value="1">{t("common.active")}</option>
+            <option value="0">{t("common.inactive")}</option>
+          </select>
+        </div>
       </div>
 
       {viewMode === "list" ? (
@@ -389,18 +401,7 @@ export default function UsersPage() {
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
-                                setEditingId(u.id);
-                                setForm({
-                                  name: u.name,
-                                  email: u.email,
-                                  password: "",
-                                  role: u.role,
-                                  branch_id: String(u.branch_id || ""),
-                                  is_active: u.is_active,
-                                });
-                                setShowModal(true);
-                              }}
+                              onClick={() => navigate(`/settings/users/${u.id}/edit`)}
                               className="btn-icon edit"
                               title={t("common.edit")}
                             >
@@ -605,18 +606,7 @@ export default function UsersPage() {
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        setEditingId(u.id);
-                        setForm({
-                          name: u.name,
-                          email: u.email,
-                          password: "",
-                          role: u.role,
-                          branch_id: String(u.branch_id || ""),
-                          is_active: u.is_active,
-                        });
-                        setShowModal(true);
-                      }}
+                      onClick={() => navigate(`/settings/users/${u.id}/edit`)}
                       className="btn-icon edit"
                       title={t("common.edit")}
                     >
@@ -712,132 +702,6 @@ export default function UsersPage() {
             {t("users.bulkDeleteDesc")}
           </p>
         </div>
-      </Modal>
-
-      {/* ── Add/Edit User Modal ── */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editingId ? t("users.editTitle") : t("users.addTitle")}
-        size="md"
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="btn btn-ghost"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="submit"
-              form="user-form"
-              disabled={saveMutation.isPending}
-              className="btn btn-primary"
-            >
-              {saveMutation.isPending ? t("common.saving") : t("common.save")}
-            </button>
-          </>
-        }
-      >
-        <form
-          id="user-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveMutation.mutate(
-              editingId
-                ? { ...form, password: form.password || undefined }
-                : form,
-            );
-          }}
-          className="flex flex-col gap-4"
-        >
-          {editingId && editingId && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}>
-              {(() => {
-                const editingUser = users.find((u) => u.id === editingId);
-                return editingUser ? <AvatarImg user={editingUser} size={64} /> : null;
-              })()}
-            </div>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">{t("users.form.name")} *</label>
-            <input
-              required
-              placeholder={t("users.form.namePlaceholder")}
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("users.form.email")} *</label>
-            <input
-              required
-              type="email"
-              placeholder={t("users.form.email")}
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">
-              {t("users.form.password")}
-              {editingId ? ` (${t("users.form.passwordHint")})` : " *"}
-            </label>
-            <input
-              type="password"
-              placeholder={t("users.form.passwordPlaceholder")}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="form-input"
-              required={!editingId}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("users.form.role")} *</label>
-            <select
-              value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="form-select"
-            >
-              {roles.map((r) => (
-                <option key={r.id} value={r.name}>
-                  {r.display_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("users.form.branch")}</label>
-            <select
-              value={form.branch_id}
-              onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
-              className="form-select"
-            >
-              <option value="">{t("users.form.branchPlaceholder")}</option>
-              {branches.map((b: any) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active_user"
-              checked={form.is_active}
-              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              className="accent-primary"
-            />
-            <label htmlFor="is_active_user" className="text-sm text-secondary">
-              {t("common.active")}
-            </label>
-          </div>
-        </form>
       </Modal>
 
       {/* ── Activity Log Modal ── */}

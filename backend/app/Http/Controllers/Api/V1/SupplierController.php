@@ -11,9 +11,21 @@ class SupplierController extends Controller
 {
     public function index(Request $request)
     {
-        $suppliers = Supplier::where('tenant_id', $request->tenant_id)
-            ->latest()
-            ->paginate($request->per_page ?? 20);
+        $query = Supplier::where('tenant_id', $request->tenant_id);
+
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('phone', 'like', "%{$request->search}%")
+                    ->orWhere('email', 'like', "%{$request->search}%");
+            });
+        }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        $suppliers = $query->latest()->paginate($request->per_page ?? 20);
 
         return response()->json([
             'success' => true,
@@ -37,6 +49,7 @@ class SupplierController extends Controller
             'email' => $request->email,
             'address' => $request->address,
             'opening_balance' => $request->opening_balance ?? 0,
+            'is_active' => $request->boolean('is_active', true),
         ]);
 
         return response()->json([
@@ -60,7 +73,7 @@ class SupplierController extends Controller
     public function update(SupplierRequest $request, $id)
     {
         $supplier = Supplier::where('tenant_id', $request->tenant_id)->findOrFail($id);
-        $supplier->update($request->only(['name', 'phone', 'email', 'address', 'opening_balance']));
+        $supplier->update($request->only(['name', 'phone', 'email', 'address', 'opening_balance', 'is_active']));
 
         return response()->json([
             'success' => true,
@@ -78,6 +91,27 @@ class SupplierController extends Controller
             'success' => true,
             'data' => null,
             'message' => 'Supplier berhasil dihapus',
+        ]);
+    }
+
+    public function stats(Request $request)
+    {
+        $query = Supplier::where('tenant_id', $request->tenant_id);
+
+        $total = (clone $query)->count();
+        $active = (clone $query)->where('is_active', true)->count();
+        $inactive = $total - $active;
+        $totalBalance = (clone $query)->sum('opening_balance');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total' => $total,
+                'active' => $active,
+                'inactive' => $inactive,
+                'total_opening_balance' => $totalBalance,
+            ],
+            'message' => 'Statistik supplier',
         ]);
     }
 }

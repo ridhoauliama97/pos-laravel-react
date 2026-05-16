@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
-import { formatCurrency } from "../lib/utils";
+import { formatCurrency, formatDate } from "../lib/utils";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -14,13 +15,13 @@ import {
   LayoutGrid,
   List,
   AlertTriangle,
-  Upload,
-  X,
   PackageCheck,
   PackagePlus,
   AlertCircle,
-} from "lucide-react";
-import type { Product } from "../types";
+  Columns,
+  EyeOff,
+} from "../components/icons";
+import type { Product, Category } from "../types";
 import { useT } from "../i18n";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
@@ -33,47 +34,56 @@ interface ProductStats {
   low_stock: number;
 }
 
+type ColumnKey = "image" | "name" | "sku" | "barcode" | "category" | "unit" | "buyPrice" | "sellPrice" | "stock" | "status" | "createdAt";
+
+const ALL_COLUMNS: { key: ColumnKey; labelKey: string }[] = [
+  { key: "image", labelKey: "products.table.image" },
+  { key: "name", labelKey: "products.table.name" },
+  { key: "sku", labelKey: "products.table.sku" },
+  { key: "barcode", labelKey: "products.table.barcode" },
+  { key: "category", labelKey: "products.table.category" },
+  { key: "unit", labelKey: "products.table.unit" },
+  { key: "buyPrice", labelKey: "products.table.buyPrice" },
+  { key: "sellPrice", labelKey: "products.table.sellPrice" },
+  { key: "stock", labelKey: "products.table.stock" },
+  { key: "status", labelKey: "common.status" },
+  { key: "createdAt", labelKey: "products.table.createdAt" },
+];
+
 export default function ProductsPage() {
   const t = useT();
+  const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [showModal, setShowModal] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    sku: "",
-    barcode: "",
-    category_id: "",
-    unit_id: "",
-    buy_price: 0,
-    sell_price: 0,
-    min_stock: 0,
-    is_active: true,
-    variants: [] as {
-      name: string;
-      sku: string;
-      buy_price: number;
-      sell_price: number;
-      stock: number;
-    }[],
-  });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
 
   // Filters
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [stockFilter, setStockFilter] = useState("");
 
+  const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>([
+    "image", "name", "sku", "barcode", "category", "unit", "buyPrice", "sellPrice", "stock", "status",
+  ]);
+
   const queryClient = useQueryClient();
 
+  const { data: categoriesData } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.get<Category[]>("/categories"),
+  });
+  const categories = categoriesData?.data || [];
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["products", search, page, statusFilter, stockFilter],
+    queryKey: ["products", search, page, categoryFilter, statusFilter, stockFilter],
     queryFn: () => {
       const params = new URLSearchParams({ search, page: String(page) });
+      if (categoryFilter) params.set("category_id", categoryFilter);
       if (statusFilter) params.set("is_active", statusFilter);
       if (stockFilter) params.set("stock_status", stockFilter);
       return api.get<Product[]>(`/products?${params}`);
@@ -87,15 +97,11 @@ export default function ProductsPage() {
 
   const stats = statsData?.data;
 
-  const { data: categoriesData } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => api.get<any[]>("/categories?per_page=100"),
-  });
-
-  const { data: unitsData } = useQuery({
-    queryKey: ["units"],
-    queryFn: () => api.get<any[]>("/units"),
-  });
+  const toggleColumn = useCallback((key: ColumnKey) => {
+    setVisibleColumns((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  }, []);
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -114,64 +120,8 @@ export default function ProductsPage() {
     },
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async (data: typeof form) => {
-      const hasFile = !!imageFile;
-
-      if (hasFile) {
-        const fd = new FormData();
-        fd.append("name", data.name);
-        fd.append("buy_price", String(data.buy_price));
-        fd.append("sell_price", String(data.sell_price));
-        fd.append("min_stock", String(data.min_stock));
-        fd.append("is_active", data.is_active ? "1" : "0");
-
-        if (data.sku) fd.append("sku", data.sku);
-        if (data.barcode) fd.append("barcode", data.barcode);
-        if (data.category_id) fd.append("category_id", String(data.category_id));
-        if (data.unit_id) fd.append("unit_id", String(data.unit_id));
-        if (data.min_stock > 0) fd.append("min_stock", String(data.min_stock));
-        fd.append("image", imageFile!);
-        if (data.variants.length > 0) {
-          fd.append("variants", JSON.stringify(data.variants));
-        }
-
-        const endpoint = editingId ? `/products/${editingId}` : "/products";
-        if (editingId) {
-          fd.append("_method", "PUT");
-        }
-        return api.upload<Product>(endpoint, fd);
-      }
-
-      const payload = {
-        ...data,
-        category_id: data.category_id ? Number(data.category_id) : null,
-        unit_id: data.unit_id ? Number(data.unit_id) : null,
-      } as Record<string, unknown>;
-
-      if (editingId && !imagePreview && imageFile === null) {
-        payload.image = "";
-      }
-
-      return editingId
-        ? api.put<Product>(`/products/${editingId}`, payload)
-        : api.post<Product>("/products", payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["products-stats"] });
-      setShowModal(false);
-      setEditingId(null);
-      resetForm();
-      toast.success(editingId ? t("products.updated") : t("products.created"));
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
   const products = data?.data || [];
   const meta = data?.meta;
-  const categories = categoriesData?.data || [];
-  const units = unitsData?.data || [];
 
   const toggleSelectAll = () => {
     if (selectedIds.length === products.length && products.length > 0) {
@@ -187,57 +137,8 @@ export default function ProductsPage() {
     );
   };
 
-  const resetForm = () => {
-    setForm({
-      name: "",
-      sku: "",
-      barcode: "",
-      category_id: "",
-      unit_id: "",
-      buy_price: 0,
-      sell_price: 0,
-      min_stock: 0,
-      is_active: true,
-      variants: [],
-    });
-    setImageFile(null);
-    setImagePreview(null);
-  };
-
   const openEdit = (product: Product) => {
-    setEditingId(product.id);
-    setForm({
-      name: product.name,
-      sku: product.sku || "",
-      barcode: product.barcode || "",
-      category_id: String(product.category_id || ""),
-      unit_id: String(product.unit_id || ""),
-      buy_price: product.buy_price,
-      sell_price: product.sell_price,
-      min_stock: product.min_stock,
-      is_active: product.is_active,
-      variants:
-        product.variants?.map((v) => ({
-          name: v.name,
-          sku: v.sku || "",
-          buy_price: v.buy_price,
-          sell_price: v.sell_price,
-          stock: v.stock,
-        })) || [],
-    });
-    setImageFile(null);
-    setImagePreview(product.image || null);
-    setShowModal(true);
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+    navigate(`/products/${product.id}/edit`);
   };
 
   if (isError) {
@@ -263,11 +164,7 @@ export default function ProductsPage() {
         </div>
         {hasPermission(PERMISSIONS.PRODUCTS_CREATE) && (
           <button
-            onClick={() => {
-              setEditingId(null);
-              resetForm();
-              setShowModal(true);
-            }}
+            onClick={() => navigate("/products/new")}
             className="btn btn-primary"
           >
             <Plus className="w-4 h-4" /> {t("products.add")}
@@ -344,10 +241,22 @@ export default function ProductsPage() {
 
         <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap", alignItems: "center" }}>
           <select
+            value={categoryFilter}
+            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+            className="form-select"
+            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 1.75rem .35rem .75rem" }}
+          >
+            <option value="">{t("products.filters.allCategories")}</option>
+            {categories.map((c: Category) => (
+              <option key={c.id} value={String(c.id)}>{c.name}</option>
+            ))}
+          </select>
+
+          <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="form-select"
-            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem .75rem" }}
+            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 1.75rem .35rem .75rem" }}
           >
             <option value="">{t("products.filters.allStatus")}</option>
             <option value="1">{t("products.filters.active")}</option>
@@ -387,6 +296,67 @@ export default function ProductsPage() {
               border: "1px solid var(--border)",
             }}
           >
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowColumnPicker((p) => !p)}
+                className={`btn-icon ${showColumnPicker ? "active" : ""}`}
+                style={{
+                  background: showColumnPicker ? "var(--bg-card)" : "transparent",
+                  boxShadow: showColumnPicker ? "var(--shadow-sm)" : "none",
+                }}
+                title={t("products.toggleColumns")}
+              >
+                <Columns className="w-4 h-4" />
+              </button>
+              {showColumnPicker && (
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "100%",
+                    marginTop: "0.375rem",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "0.625rem",
+                    boxShadow: "var(--shadow-lg)",
+                    padding: "0.5rem",
+                    minWidth: "10rem",
+                    zIndex: 50,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ fontSize: ".75rem", fontWeight: 600, color: "var(--muted)", padding: "0.25rem 0.5rem 0.375rem", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                    {t("products.columns")}
+                  </div>
+                  {ALL_COLUMNS.map((col) => (
+                    <label
+                      key={col.key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.375rem 0.5rem",
+                        borderRadius: "0.375rem",
+                        cursor: "pointer",
+                        fontSize: ".8125rem",
+                        color: "var(--text)",
+                        transition: "background .15s",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.includes(col.key)}
+                        onChange={() => toggleColumn(col.key)}
+                        style={{ accentColor: "var(--primary)" }}
+                      />
+                      {t(col.labelKey)}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setViewMode("list")}
               className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
@@ -438,16 +408,17 @@ export default function ProductsPage() {
                       className="form-checkbox"
                     />
                   </th>
-                  <th style={{ width: "4rem" }}>{t("products.table.image")}</th>
-                  <th>{t("products.table.name")}</th>
-                  <th>{t("products.table.sku")}</th>
-                  <th>{t("products.table.barcode")}</th>
-                  <th>{t("products.table.category")}</th>
-                  <th>{t("products.table.unit")}</th>
-                  <th className="right">{t("products.table.buyPrice")}</th>
-                  <th className="right">{t("products.table.sellPrice")}</th>
-                  <th className="right">{t("products.table.stock")}</th>
-                  <th className="center">{t("common.status")}</th>
+                  <th style={{ width: "4rem", transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("image") ? 1 : 0, width: visibleColumns.includes("image") ? "4rem" : "0", padding: visibleColumns.includes("image") ? "" : "0" }}>{t("products.table.image")}</th>
+                  <th style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("name") ? 1 : 0, width: visibleColumns.includes("name") ? "" : "0", padding: visibleColumns.includes("name") ? "" : "0" }}>{t("products.table.name")}</th>
+                  <th style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("sku") ? 1 : 0, width: visibleColumns.includes("sku") ? "" : "0", padding: visibleColumns.includes("sku") ? "" : "0" }}>{t("products.table.sku")}</th>
+                  <th style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("barcode") ? 1 : 0, width: visibleColumns.includes("barcode") ? "" : "0", padding: visibleColumns.includes("barcode") ? "" : "0" }}>{t("products.table.barcode")}</th>
+                  <th style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("category") ? 1 : 0, width: visibleColumns.includes("category") ? "" : "0", padding: visibleColumns.includes("category") ? "" : "0" }}>{t("products.table.category")}</th>
+                  <th style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("unit") ? 1 : 0, width: visibleColumns.includes("unit") ? "" : "0", padding: visibleColumns.includes("unit") ? "" : "0" }}>{t("products.table.unit")}</th>
+                  <th className="right" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("buyPrice") ? 1 : 0, width: visibleColumns.includes("buyPrice") ? "" : "0", padding: visibleColumns.includes("buyPrice") ? "" : "0" }}>{t("products.table.buyPrice")}</th>
+                  <th className="right" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("sellPrice") ? 1 : 0, width: visibleColumns.includes("sellPrice") ? "" : "0", padding: visibleColumns.includes("sellPrice") ? "" : "0" }}>{t("products.table.sellPrice")}</th>
+                  <th className="right" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("stock") ? 1 : 0, width: visibleColumns.includes("stock") ? "" : "0", padding: visibleColumns.includes("stock") ? "" : "0" }}>{t("products.table.stock")}</th>
+                  <th className="center" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("status") ? 1 : 0, width: visibleColumns.includes("status") ? "" : "0", padding: visibleColumns.includes("status") ? "" : "0" }}>{t("common.status")}</th>
+                  <th className="right" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("createdAt") ? 1 : 0, width: visibleColumns.includes("createdAt") ? "" : "0", padding: visibleColumns.includes("createdAt") ? "" : "0" }}>{t("products.table.createdAt")}</th>
                   <th className="right">{t("common.actions")}</th>
                 </tr>
               </thead>
@@ -506,7 +477,7 @@ export default function ProductsPage() {
                             className="form-checkbox"
                           />
                         </td>
-                        <td>
+                        <td style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("image") ? 1 : 0, width: visibleColumns.includes("image") ? "" : "0", padding: visibleColumns.includes("image") ? "" : "0" }}>
                           {product.image ? (
                             <img
                               src={product.image}
@@ -536,32 +507,32 @@ export default function ProductsPage() {
                             </div>
                           )}
                         </td>
-                        <td>
+                        <td style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("name") ? 1 : 0, width: visibleColumns.includes("name") ? "" : "0", padding: visibleColumns.includes("name") ? "" : "0" }}>
                           <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>
                             {product.name}
                           </span>
                         </td>
-                        <td className="muted">
+                        <td className="muted" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("sku") ? 1 : 0, width: visibleColumns.includes("sku") ? "" : "0", padding: visibleColumns.includes("sku") ? "" : "0" }}>
                           <span style={{ fontFamily: "monospace", fontSize: ".8rem" }}>
                             {product.sku || "—"}
                           </span>
                         </td>
-                        <td className="muted">
+                        <td className="muted" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("barcode") ? 1 : 0, width: visibleColumns.includes("barcode") ? "" : "0", padding: visibleColumns.includes("barcode") ? "" : "0" }}>
                           <span style={{ fontFamily: "monospace", fontSize: ".8rem" }}>
                             {product.barcode || "—"}
                           </span>
                         </td>
-                        <td className="muted">{product.category?.name || "—"}</td>
-                        <td className="muted">{product.unit?.name || "—"}</td>
-                        <td className="right muted">
+                        <td className="muted" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("category") ? 1 : 0, width: visibleColumns.includes("category") ? "" : "0", padding: visibleColumns.includes("category") ? "" : "0" }}>{product.category?.name || "—"}</td>
+                        <td className="muted" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("unit") ? 1 : 0, width: visibleColumns.includes("unit") ? "" : "0", padding: visibleColumns.includes("unit") ? "" : "0" }}>{product.unit?.name || "—"}</td>
+                        <td className="right muted" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("buyPrice") ? 1 : 0, width: visibleColumns.includes("buyPrice") ? "" : "0", padding: visibleColumns.includes("buyPrice") ? "" : "0" }}>
                           {formatCurrency(product.buy_price)}
                         </td>
-                        <td className="right">
+                        <td className="right" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("sellPrice") ? 1 : 0, width: visibleColumns.includes("sellPrice") ? "" : "0", padding: visibleColumns.includes("sellPrice") ? "" : "0" }}>
                           <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                             {formatCurrency(product.sell_price)}
                           </span>
                         </td>
-                        <td className="right">
+                        <td className="right" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("stock") ? 1 : 0, width: visibleColumns.includes("stock") ? "" : "0", padding: visibleColumns.includes("stock") ? "" : "0" }}>
                           <span
                             style={{
                               fontWeight: 600,
@@ -587,12 +558,15 @@ export default function ProductsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="center">
+                        <td className="center" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("status") ? 1 : 0, width: visibleColumns.includes("status") ? "" : "0", padding: visibleColumns.includes("status") ? "" : "0" }}>
                           <span
                             className={`badge ${product.is_active ? "badge-success" : "badge-danger"}`}
                           >
                             {product.is_active ? t("common.active") : t("products.inactive")}
                           </span>
+                        </td>
+                        <td className="center muted" style={{ transition: "width .2s, opacity .2s, padding .2s", overflow: "hidden", opacity: visibleColumns.includes("createdAt") ? 1 : 0, width: visibleColumns.includes("createdAt") ? "" : "0", padding: visibleColumns.includes("createdAt") ? "" : "0", whiteSpace: "nowrap", fontSize: ".8125rem" }}>
+                          {formatDate(product.created_at)}
                         </td>
                         <td className="right">
                           <div
@@ -866,204 +840,6 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
-
-      {/* Product Form Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editingId ? t("products.editTitle") : t("products.addTitle")}
-        size="lg"
-        footer={
-          <>
-            <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">
-              {t("common.cancel")}
-            </button>
-            <button type="submit" form="product-form" disabled={saveMutation.isPending} className="btn btn-primary">
-              {saveMutation.isPending ? t("common.saving") : t("common.save")}
-            </button>
-          </>
-        }
-      >
-        <form
-          id="product-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveMutation.mutate(form);
-          }}
-          className="flex flex-col gap-4"
-        >
-          <div className="form-group">
-            <label className="form-label">{t("products.form.productImage")}</label>
-            <div className="flex items-center gap-4">
-              <div
-                style={{
-                  width: "6rem",
-                  height: "6rem",
-                  borderRadius: "0.75rem",
-                  border: "2px dashed var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                  position: "relative",
-                  background: "var(--bg)",
-                  flexShrink: 0,
-                }}
-              >
-                {imagePreview ? (
-                  <>
-                    <img src={imagePreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <button
-                      type="button"
-                      onClick={() => { setImageFile(null); setImagePreview(null); }}
-                      style={{
-                        position: "absolute",
-                        top: "0.25rem",
-                        right: "0.25rem",
-                        width: "1.5rem",
-                        height: "1.5rem",
-                        borderRadius: "50%",
-                        background: "rgba(0,0,0,0.6)",
-                        color: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </>
-                ) : (
-                  <Package className="w-8 h-8" style={{ opacity: 0.3 }} />
-                )}
-              </div>
-              <label className="btn btn-ghost" style={{ cursor: "pointer" }}>
-                <Upload className="w-4 h-4" />
-                {imagePreview ? t("common.change") : t("common.chooseFile")}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-                  onChange={handleImageChange}
-                  style={{ display: "none" }}
-                />
-              </label>
-            </div>
-          </div>
-
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: ".5rem",
-              cursor: "pointer",
-              fontSize: ".875rem",
-              color: "var(--text-primary)",
-              padding: ".5rem 0",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={form.is_active}
-              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              className="form-checkbox"
-              style={{ width: "1.125rem", height: "1.125rem" }}
-            />
-            {t("products.form.isActive")}
-          </label>
-
-          <div className="form-group">
-            <label className="form-label">{t("products.form.productName")}</label>
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="form-input"
-              placeholder={t("products.form.productNamePlaceholder")}
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="form-group">
-              <label className="form-label">{t("products.form.sku")}</label>
-              <input
-                value={form.sku}
-                onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                className="form-input"
-                placeholder={t("products.form.skuPlaceholder")}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">{t("products.form.barcode")}</label>
-              <input
-                value={form.barcode}
-                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                className="form-input"
-                placeholder="123456789"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="form-group">
-              <label className="form-label">{t("products.form.category")}</label>
-              <select
-                value={form.category_id}
-                onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                className="form-select"
-              >
-                <option value="">{t("products.form.categoryPlaceholder")}</option>
-                {categories.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">{t("products.form.unit")}</label>
-              <select
-                value={form.unit_id}
-                onChange={(e) => setForm({ ...form, unit_id: e.target.value })}
-                className="form-select"
-              >
-                <option value="">{t("products.form.unitPlaceholder")}</option>
-                {units.map((u: any) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="form-group">
-              <label className="form-label">{t("products.form.buyPrice")}</label>
-              <input
-                type="number"
-                required
-                value={form.buy_price}
-                onChange={(e) => setForm({ ...form, buy_price: Number(e.target.value) })}
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">{t("products.form.sellPrice")}</label>
-              <input
-                type="number"
-                required
-                value={form.sell_price}
-                onChange={(e) => setForm({ ...form, sell_price: Number(e.target.value) })}
-                className="form-input"
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("products.form.minStock")}</label>
-            <input
-              type="number"
-              value={form.min_stock}
-              onChange={(e) => setForm({ ...form, min_stock: Number(e.target.value) })}
-              className="form-input"
-            />
-          </div>
-        </form>
-      </Modal>
 
       <Modal
         isOpen={showBulkDeleteModal}

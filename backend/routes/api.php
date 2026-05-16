@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\RoleController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/company', [AuthController::class, 'company']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
@@ -79,6 +80,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Units
         Route::get('/units', [UnitController::class, 'index'])->middleware('permission:products.view');
+        Route::middleware('permission:units.manage')->group(function() {
+            Route::post('/units', [UnitController::class, 'store']);
+            Route::put('/units/{unit}', [UnitController::class, 'update']);
+            Route::delete('/units/{unit}', [UnitController::class, 'destroy']);
+        });
 
         // Categories
         Route::get('categories', [CategoryController::class, 'index'])->middleware('permission:categories.view');
@@ -101,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Suppliers
         Route::middleware('permission:suppliers.view')->group(function() {
             Route::get('suppliers', [SupplierController::class, 'index']);
+            Route::get('suppliers/stats', [SupplierController::class, 'stats']);
             Route::get('suppliers/{supplier}', [SupplierController::class, 'show']);
         });
         Route::middleware('permission:suppliers.manage')->group(function() {

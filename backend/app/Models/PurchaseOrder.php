@@ -33,6 +33,12 @@ class PurchaseOrder extends Model
         return $this->belongsTo(Supplier::class);
     }
 
+    public function suppliers()
+    {
+        return $this->belongsToMany(Supplier::class, 'purchase_order_supplier')
+            ->withTimestamps();
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

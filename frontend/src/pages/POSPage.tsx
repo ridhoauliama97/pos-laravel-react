@@ -15,7 +15,7 @@ import {
   Package,
   Tag,
   Percent,
-} from "lucide-react";
+} from "../components/icons";
 import type {
   Product,
   Customer,

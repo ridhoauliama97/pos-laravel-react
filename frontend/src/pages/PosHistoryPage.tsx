@@ -9,7 +9,7 @@ import {
   FileText,
   FileSpreadsheet,
   Calendar,
-} from "lucide-react";
+} from "../components/icons";
 import type { Transaction } from "../types";
 import { useT } from "../i18n";
 

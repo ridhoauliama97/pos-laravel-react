@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
-import { X, ZoomIn, ZoomOut, Check } from "lucide-react";
+import { X, ZoomIn, ZoomOut, Check } from "./icons";
 import { useT } from "../i18n";
 
 interface CropModalProps {

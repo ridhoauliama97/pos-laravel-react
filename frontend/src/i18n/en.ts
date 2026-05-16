@@ -17,6 +17,7 @@ const en: Translation = {
     confirm: 'Confirm',
     back: 'Back',
     filter: 'Filter',
+    clear: 'Clear',
     export: 'Export',
     noData: 'No data',
     actions: 'Actions',
@@ -54,6 +55,7 @@ const en: Translation = {
     transactionHistory: 'Transaction History',
     products: 'Products',
     categories: 'Categories',
+    units: 'Units',
     customers: 'Customers',
     suppliers: 'Suppliers',
     stock: 'Stock',
@@ -71,8 +73,8 @@ const en: Translation = {
   },
 
   login: {
-    title: 'POS System',
-    subtitle: 'Point of Sale Management',
+    title: 'POS Application',
+    subtitle: 'Welcome back!',
     email: 'Email',
     emailPlaceholder: 'admin@pos.test',
     password: 'Password',
@@ -283,6 +285,7 @@ const en: Translation = {
       phone: 'Phone',
       email: 'Email',
       address: 'Address',
+      status: 'Status',
       openingBalance: 'Opening Balance',
     },
     loading: 'Loading...',
@@ -304,6 +307,15 @@ const en: Translation = {
     created: 'Supplier added',
     deleted: 'Supplier deleted',
     deleteConfirm: 'Delete this supplier?',
+    stats: {
+      total: 'Total Suppliers',
+      active: 'Active',
+      inactive: 'Inactive',
+      totalBalance: 'Total Opening Balance',
+    },
+    filters: {
+      allStatus: 'All Status',
+    },
   },
 
   reports: {
@@ -394,6 +406,11 @@ const en: Translation = {
     title: 'User Management',
     subtitle: 'Manage users and access rights',
     add: 'Add User',
+    searchPlaceholder: 'Search users...',
+    filters: {
+      allRoles: 'All Roles',
+      allStatus: 'All Status',
+    },
     table: {
       user: 'User',
       email: 'Email',
@@ -503,6 +520,26 @@ const en: Translation = {
     deleteConfirm: 'Delete category',
   },
 
+  units: {
+    title: 'Units',
+    subtitle: 'Manage product units',
+    add: 'Add Unit',
+    productCount: 'products',
+    empty: 'No units yet',
+    editTitle: 'Edit Unit',
+    addTitle: 'Add New Unit',
+    form: {
+      name: 'Unit Name *',
+      namePlaceholder: 'Unit name',
+      short: 'Short Name',
+      shortPlaceholder: 'e.g.: kg, pcs, ltr',
+    },
+    updated: 'Unit updated',
+    created: 'Unit added',
+    deleted: 'Unit deleted',
+    deleteConfirm: 'Delete unit',
+  },
+
   posHistory: {
     title: 'Transaction History',
     subtitle: 'View transaction history by date range',
@@ -544,6 +581,8 @@ const en: Translation = {
       reference: 'Reference',
       user: 'User',
       date: 'Date',
+      notes: 'Notes',
+      toBranch: 'To Branch',
     },
     loading: 'Loading...',
     empty: 'No stock mutations',
@@ -557,6 +596,8 @@ const en: Translation = {
       qty: 'Quantity *',
       notes: 'Notes *',
       notesPlaceholder: 'Reason for adjustment...',
+      destinationBranch: 'Destination Branch',
+      destinationBranchPlaceholder: 'Select destination branch',
     },
     successToast: 'Stock adjusted successfully',
     addButton: 'New Adjustment',
@@ -615,6 +656,7 @@ const en: Translation = {
       received: 'Received',
     },
     empty: 'No items',
+    totalQty: 'Total Qty',
     total: 'Total',
     receivingHistory: 'Receiving History',
     receivedBy: 'Received by',

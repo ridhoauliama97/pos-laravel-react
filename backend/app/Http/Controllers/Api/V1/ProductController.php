@@ -20,8 +20,8 @@ class ProductController extends Controller
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('sku', 'like', "%{$request->search}%")
-                  ->orWhere('barcode', 'like', "%{$request->search}%");
+                    ->orWhere('sku', 'like', "%{$request->search}%")
+                    ->orWhere('barcode', 'like', "%{$request->search}%");
             });
         }
 
@@ -35,7 +35,7 @@ class ProductController extends Controller
 
         if ($request->stock_status) {
             $query->where(function ($q) use ($request) {
-                $totalStock = DB::raw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_variants.product_id = products.id)');
+                $totalStock = DB::raw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_variants.product_id = products.id) + COALESCE(products.stock, 0)');
                 match ($request->stock_status) {
                     'habis' => $q->where($totalStock, 0),
                     'low' => $q->where($totalStock, '>', 0)->where($totalStock, '<=', DB::raw('products.min_stock')),
@@ -115,8 +115,15 @@ class ProductController extends Controller
         $product = Product::where('tenant_id', $request->tenant_id)->findOrFail($id);
 
         $data = $request->only([
-            'category_id', 'unit_id', 'name', 'sku', 'barcode',
-            'buy_price', 'sell_price', 'min_stock', 'is_active',
+            'category_id',
+            'unit_id',
+            'name',
+            'sku',
+            'barcode',
+            'buy_price',
+            'sell_price',
+            'min_stock',
+            'is_active',
         ]);
 
         if ($request->hasFile('image')) {
@@ -159,15 +166,15 @@ class ProductController extends Controller
 
         $readyStock = (clone $query)->where('is_active', true)
             ->where(function ($q) {
-                $totalStock = DB::raw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_variants.product_id = products.id)');
+                $totalStock = DB::raw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_variants.product_id = products.id) + COALESCE(products.stock, 0)');
                 $q->where($totalStock, '>', DB::raw('products.min_stock'));
             })->count();
 
         $lowStock = (clone $query)->where('is_active', true)
             ->where(function ($q) {
-                $totalStock = DB::raw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_variants.product_id = products.id)');
+                $totalStock = DB::raw('(SELECT COALESCE(SUM(stock), 0) FROM product_variants WHERE product_variants.product_id = products.id) + COALESCE(products.stock, 0)');
                 $q->where($totalStock, '>', 0)
-                  ->where($totalStock, '<=', DB::raw('products.min_stock'));
+                    ->where($totalStock, '<=', DB::raw('products.min_stock'));
             })->count();
 
         return response()->json([

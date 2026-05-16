@@ -12,7 +12,7 @@ import {
   Building2,
   Clock,
   Package,
-} from "lucide-react";
+} from "../components/icons";
 import { useT } from "../i18n";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
@@ -38,6 +38,7 @@ interface PurchaseOrder {
   total: number;
   notes?: string;
   supplier?: { id: number; name: string; phone?: string };
+  suppliers?: { id: number; name: string; phone?: string }[];
   user?: { id: number; name: string };
   branch?: { id: number; name: string };
   items?: POItem[];
@@ -233,8 +234,12 @@ export default function PurchaseOrderDetailPage() {
           {
             icon: Building2,
             label: t("purchaseOrderDetail.supplier"),
-            val: po.supplier?.name || "—",
-            sub: po.supplier?.phone,
+            val: po.suppliers && po.suppliers.length > 0
+              ? po.suppliers.map((s: any) => s.name).join(", ")
+              : "—",
+            sub: po.suppliers && po.suppliers.length > 0
+              ? po.suppliers.map((s: any) => s.phone).filter(Boolean).join(", ")
+              : undefined,
           },
           {
             icon: User,

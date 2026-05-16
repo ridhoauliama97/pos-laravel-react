@@ -15,6 +15,7 @@ const id = {
     confirm: 'Konfirmasi',
     back: 'Kembali',
     filter: 'Filter',
+    clear: 'Bersihkan',
     export: 'Ekspor',
     noData: 'Tidak ada data',
     actions: 'Aksi',
@@ -52,6 +53,7 @@ const id = {
     transactionHistory: 'Riwayat Transaksi',
     products: 'Produk',
     categories: 'Kategori',
+    units: 'Unit',
     customers: 'Pelanggan',
     suppliers: 'Supplier',
     stock: 'Stok',
@@ -69,8 +71,8 @@ const id = {
   },
 
   login: {
-    title: 'POS System',
-    subtitle: 'Point of Sale Management',
+    title: 'Aplikasi POS',
+    subtitle: 'Selamat Datang Kembali',
     email: 'Email',
     emailPlaceholder: 'admin@pos.test',
     password: 'Password',
@@ -281,6 +283,7 @@ const id = {
       phone: 'Telepon',
       email: 'Email',
       address: 'Alamat',
+      status: 'Status',
       openingBalance: 'Saldo Awal',
     },
     loading: 'Memuat...',
@@ -302,6 +305,15 @@ const id = {
     created: 'Supplier ditambahkan',
     deleted: 'Supplier dihapus',
     deleteConfirm: 'Hapus supplier ini?',
+    stats: {
+      total: 'Total Supplier',
+      active: 'Aktif',
+      inactive: 'Nonaktif',
+      totalBalance: 'Total Saldo Awal',
+    },
+    filters: {
+      allStatus: 'Semua Status',
+    },
   },
 
   reports: {
@@ -392,6 +404,11 @@ const id = {
     title: 'Manajemen User',
     subtitle: 'Kelola pengguna dan hak akses',
     add: 'Tambah User',
+    searchPlaceholder: 'Cari user...',
+    filters: {
+      allRoles: 'Semua Role',
+      allStatus: 'Semua Status',
+    },
     table: {
       user: 'User',
       email: 'Email',
@@ -501,6 +518,26 @@ const id = {
     deleteConfirm: 'Hapus kategori',
   },
 
+  units: {
+    title: 'Unit',
+    subtitle: 'Kelola satuan produk',
+    add: 'Tambah Unit',
+    productCount: 'produk',
+    empty: 'Belum ada unit',
+    editTitle: 'Edit Unit',
+    addTitle: 'Tambah Unit Baru',
+    form: {
+      name: 'Nama Unit *',
+      namePlaceholder: 'Nama unit',
+      short: 'Singkatan',
+      shortPlaceholder: 'contoh: kg, pcs, ltr',
+    },
+    updated: 'Unit diupdate',
+    created: 'Unit ditambahkan',
+    deleted: 'Unit dihapus',
+    deleteConfirm: 'Hapus unit',
+  },
+
   posHistory: {
     title: 'Riwayat Transaksi',
     subtitle: 'Lihat riwayat transaksi berdasarkan rentang tanggal',
@@ -542,6 +579,8 @@ const id = {
       reference: 'Referensi',
       user: 'User',
       date: 'Tanggal',
+      notes: 'Keterangan',
+      toBranch: 'Cabang Tujuan',
     },
     loading: 'Memuat...',
     empty: 'Belum ada mutasi stok',
@@ -555,6 +594,8 @@ const id = {
       qty: 'Jumlah *',
       notes: 'Keterangan *',
       notesPlaceholder: 'Alasan adjustment...',
+      destinationBranch: 'Cabang Tujuan',
+      destinationBranchPlaceholder: 'Pilih cabang tujuan',
     },
     successToast: 'Stok berhasil disesuaikan',
     addButton: 'Adjustment Baru',
@@ -613,6 +654,7 @@ const id = {
       received: 'Diterima',
     },
     empty: 'Belum ada item',
+    totalQty: 'Jumlah Qty',
     total: 'Total',
     receivingHistory: 'Riwayat Penerimaan',
     receivedBy: 'Diterima oleh',

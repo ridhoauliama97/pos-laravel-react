@@ -21,6 +21,11 @@ class PurchaseOrderRequest extends FormRequest
                 'nullable',
                 Rule::exists('suppliers', 'id')->where('tenant_id', $tenantId),
             ],
+            'supplier_ids' => 'nullable|array',
+            'supplier_ids.*' => [
+                'required',
+                Rule::exists('suppliers', 'id')->where('tenant_id', $tenantId),
+            ],
             'items' => 'required|array|min:1',
             'items.*.product_id' => [
                 'required',

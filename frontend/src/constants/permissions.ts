@@ -16,6 +16,9 @@ export const PERMISSIONS = {
   CATEGORIES_VIEW: 'categories.view',
   CATEGORIES_MANAGE: 'categories.manage',
 
+  // Units
+  UNITS_MANAGE: 'units.manage',
+
   // Customers
   CUSTOMERS_VIEW: 'customers.view',
   CUSTOMERS_CREATE: 'customers.create',

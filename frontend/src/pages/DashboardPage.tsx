@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ArrowRight,
-} from "lucide-react";
+} from "../components/icons";
 import {
   XAxis,
   YAxis,

@@ -14,12 +14,31 @@ class PurchaseOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PurchaseOrder::with(['supplier', 'user', 'items'])
+        $query = PurchaseOrder::with(['suppliers', 'user', 'items.product'])
             ->where('tenant_id', $request->tenant_id)
             ->where('branch_id', $request->branch_id);
 
         if ($request->status) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->supplier_id) {
+            $supplierIds = is_array($request->supplier_id)
+                ? $request->supplier_id
+                : explode(',', $request->supplier_id);
+            $query->whereHas('suppliers', fn($q) => $q->whereIn('suppliers.id', $supplierIds));
+        }
+
+        if ($request->product_id) {
+            $query->whereHas('items', fn($q) => $q->where('product_id', $request->product_id));
+        }
+
+        if ($request->date_from) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->date_to) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
 
         $orders = $query->latest()->paginate($request->per_page ?? 20);
@@ -58,9 +77,17 @@ class PurchaseOrderController extends Controller
                 $po->items()->create($item);
             }
 
+            $supplierIds = $request->supplier_ids ?? [];
+            if ($request->supplier_id) {
+                $supplierIds[] = $request->supplier_id;
+            }
+            if (!empty($supplierIds)) {
+                $po->suppliers()->sync(array_unique($supplierIds));
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => $po->load(['items', 'supplier']),
+                'data' => $po->load(['items.product', 'suppliers']),
                 'message' => 'Purchase order berhasil dibuat',
             ], 201);
         });
@@ -68,7 +95,7 @@ class PurchaseOrderController extends Controller
 
     public function show(Request $request, $id)
     {
-        $po = PurchaseOrder::with(['items.product', 'supplier', 'user', 'receivings'])
+        $po = PurchaseOrder::with(['items.product', 'suppliers', 'user', 'receivings'])
             ->where('tenant_id', $request->tenant_id)
             ->findOrFail($id);
 
@@ -120,6 +147,18 @@ class PurchaseOrderController extends Controller
 
                 $item->increment('received_qty', $qty);
 
+                if ($item->product_variant_id) {
+                    $variant = \App\Models\ProductVariant::find($item->product_variant_id);
+                    if ($variant) {
+                        $variant->increment('stock', $qty);
+                    }
+                } else {
+                    $product = \App\Models\Product::find($item->product_id);
+                    if ($product) {
+                        $product->increment('stock', $qty);
+                    }
+                }
+
                 \App\Models\StockMutation::create([
                     'tenant_id' => $request->tenant_id,
                     'branch_id' => $request->branch_id,
@@ -131,7 +170,7 @@ class PurchaseOrderController extends Controller
                     'reference_id' => $po->id,
                     'qty' => $qty,
                     'stock_before' => 0,
-                    'stock_after' => 0,
+                    'stock_after' => $qty,
                     'note' => 'Receiving ' . $po->po_number,
                 ]);
             }

@@ -40,6 +40,10 @@ class POSService
                     $stockBefore = $variant->stock;
                     $variant->decrement('stock', $item['qty']);
                     $stockAfter = $variant->fresh()->stock;
+                } else {
+                    $stockBefore = $product->stock ?? 0;
+                    $product->decrement('stock', $item['qty']);
+                    $stockAfter = $product->fresh()->stock;
                 }
 
                 $itemSubtotal = $sellPrice * $item['qty'];
@@ -123,6 +127,13 @@ class POSService
                         $stockBefore = $variant->stock;
                         $variant->increment('stock', $item->qty);
                         $stockAfter = $variant->fresh()->stock;
+                    }
+                } else {
+                    $product = Product::where('id', $item->product_id)->first();
+                    if ($product) {
+                        $stockBefore = $product->stock ?? 0;
+                        $product->increment('stock', $item->qty);
+                        $stockAfter = $product->fresh()->stock;
                     }
                 }
 

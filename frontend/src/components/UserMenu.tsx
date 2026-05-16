@@ -15,9 +15,10 @@ import {
   User,
   LogOut,
   ChevronDown,
-} from "lucide-react";
+  type LucideIcon,
+} from "./icons";
 
-const themes: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
+const themes: { value: ThemeMode; label: string; icon: LucideIcon }[] = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "System", icon: Monitor },

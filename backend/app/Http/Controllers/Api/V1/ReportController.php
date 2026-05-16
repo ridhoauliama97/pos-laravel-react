@@ -9,7 +9,9 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    public function __construct(private ReportService $reportService) {}
+    public function __construct(private ReportService $reportService)
+    {
+    }
 
     public function sales(Request $request)
     {

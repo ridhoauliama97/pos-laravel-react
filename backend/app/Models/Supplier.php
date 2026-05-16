@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Supplier extends Model
 {
-    protected $fillable = ['tenant_id', 'name', 'phone', 'email', 'address', 'opening_balance'];
+    protected $fillable = ['tenant_id', 'name', 'phone', 'email', 'address', 'opening_balance', 'is_active'];
 
     public function tenant()
     {

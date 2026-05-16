@@ -1,11 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../services/api";
 import { formatDate } from "../lib/utils";
-import toast from "react-hot-toast";
 import { useState } from "react";
-import { Plus, ArrowUpDown } from "lucide-react";
-import type { Product } from "../types";
+import { useNavigate } from "react-router-dom";
+import { Plus, ArrowUpDown } from "../components/icons";
 import { useT } from "../i18n";
+import { usePermissions } from "../hooks/usePermissions";
+import { PERMISSIONS } from "../constants/permissions";
 
 interface StockMutation {
   id: number;
@@ -25,16 +26,10 @@ interface StockMutation {
 
 export default function StockMutationsPage() {
   const t = useT();
-  const [tab, setTab] = useState<"list" | "adjust">("list");
+  const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  const canAdjust = hasPermission(PERMISSIONS.STOCK_ADJUSTMENTS);
   const [typeFilter, setTypeFilter] = useState("");
-  const queryClient = useQueryClient();
-
-  const [adjustForm, setAdjustForm] = useState({
-    product_id: "",
-    note: "",
-    type: "in",
-    qty: 1,
-  });
 
   const { data: mutationsData, isLoading } = useQuery({
     queryKey: ["stock-mutations", typeFilter],
@@ -42,29 +37,7 @@ export default function StockMutationsPage() {
       api.get<StockMutation[]>(`/stock/mutations?type=${typeFilter}`),
   });
 
-  const { data: productsData } = useQuery({
-    queryKey: ["products-all"],
-    queryFn: () => api.get<Product[]>("/products?per_page=200"),
-  });
-
-  const adjustMutation = useMutation({
-    mutationFn: () =>
-      api.post("/stock/adjust", {
-        product_id: Number(adjustForm.product_id),
-        type: adjustForm.type,
-        qty: adjustForm.qty,
-        note: adjustForm.note,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stock-mutations"] });
-      setAdjustForm({ product_id: "", note: "", type: "in", qty: 1 });
-      toast.success(t("stockMutations.successToast"));
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
   const mutations = mutationsData?.data || [];
-  const products = productsData?.data || [];
 
   return (
     <div className="page-container">
@@ -73,25 +46,18 @@ export default function StockMutationsPage() {
           <h1 className="page-title">{t("stockMutations.title")}</h1>
           <p className="page-subtitle">{t("stockMutations.subtitle")}</p>
         </div>
-        <div style={{ display: "flex", gap: ".5rem" }}>
+        {canAdjust && (
           <button
-            onClick={() => setTab("list")}
-            className={tab === "list" ? "btn btn-primary" : "btn btn-ghost"}
-          >
-            {t("stockMutations.tabs.history")}
-          </button>
-          <button
-            onClick={() => setTab("adjust")}
-            className={tab === "adjust" ? "btn btn-primary" : "btn btn-ghost"}
+            onClick={() => navigate("/stock/adjustments/new")}
+            className="btn btn-primary"
           >
             <Plus className="w-4 h-4" /> {t("stockMutations.tabs.adjustment")}
           </button>
-        </div>
+        )}
       </div>
 
-      {tab === "list" && (
-        <>
-          <div className="filter-pills">
+      <>
+        <div className="filter-pills">
             {[
               { val: "", label: t("common.all") },
               { val: "in", label: t("common.incoming") },
@@ -185,106 +151,6 @@ export default function StockMutationsPage() {
             </div>
           </div>
         </>
-      )}
-
-      {tab === "adjust" && (
-        <div className="card" style={{ maxWidth: "30rem", padding: "1.5rem" }}>
-          <h3
-            style={{
-              fontWeight: 600,
-              marginBottom: "1rem",
-              color: "var(--text-primary)",
-            }}
-          >
-            {t("stockMutations.adjustmentTitle")}
-          </h3>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              adjustMutation.mutate();
-            }}
-            style={{ display: "flex", flexDirection: "column", gap: ".875rem" }}
-          >
-            <div className="form-group">
-              <label className="form-label">
-                {t("stockMutations.form.product")} *
-              </label>
-              <select
-                required
-                value={adjustForm.product_id}
-                onChange={(e) =>
-                  setAdjustForm({ ...adjustForm, product_id: e.target.value })
-                }
-                className="form-select"
-              >
-                <option value="">
-                  {t("stockMutations.form.productPlaceholder")}
-                </option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.sku || "-"})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">
-                {t("stockMutations.form.type")} *
-              </label>
-              <select
-                value={adjustForm.type}
-                onChange={(e) =>
-                  setAdjustForm({ ...adjustForm, type: e.target.value })
-                }
-                className="form-select"
-              >
-                <option value="in">{t("stockMutations.form.stockIn")}</option>
-                <option value="out">{t("stockMutations.form.stockOut")}</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">
-                {t("stockMutations.form.qty")} *
-              </label>
-              <input
-                type="number"
-                required
-                min={1}
-                value={adjustForm.qty}
-                onChange={(e) =>
-                  setAdjustForm({ ...adjustForm, qty: Number(e.target.value) })
-                }
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">
-                {t("stockMutations.form.notes")} *
-              </label>
-              <textarea
-                required
-                value={adjustForm.note}
-                onChange={(e) =>
-                  setAdjustForm({ ...adjustForm, note: e.target.value })
-                }
-                className="form-textarea"
-                rows={2}
-                placeholder={t("stockMutations.form.notesPlaceholder")}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={adjustMutation.isPending}
-              className="btn btn-primary"
-              style={{ width: "100%", justifyContent: "center" }}
-            >
-              {adjustMutation.isPending
-                ? t("common.processing")
-                : t("common.save")}
-            </button>
-          </form>
-        </div>
-      )}
     </div>
   );
 }

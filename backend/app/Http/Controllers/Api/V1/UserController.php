@@ -12,10 +12,25 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $users = User::with('branch')
-            ->where('tenant_id', $request->tenant_id)
-            ->latest()
-            ->paginate($request->per_page ?? 20);
+        $query = User::with('branch')
+            ->where('tenant_id', $request->tenant_id);
+
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('email', 'like', "%{$request->search}%");
+            });
+        }
+
+        if ($request->role) {
+            $query->where('role', $request->role);
+        }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        $users = $query->latest()->paginate($request->per_page ?? 20);
 
         return response()->json([
             'success' => true,

@@ -4,17 +4,28 @@ import { formatCurrency, formatDate } from "../lib/utils";
 import toast from "react-hot-toast";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Send, CheckCircle, Eye, Package, LayoutGrid, List, AlertTriangle, Trash2 } from "lucide-react";
+import {
+  Plus, Send, CheckCircle, Eye, Package, LayoutGrid, List,
+  AlertTriangle, Trash2, Filter, X, Search,
+} from "../components/icons";
 import type { Supplier, Product } from "../types";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
 import { useT } from "../i18n";
 import { Modal } from "../components/Modal";
+import { SearchSelect } from "../components/SearchSelect";
 
 interface POItem {
   product_id: string;
   qty: number;
   price: number;
+}
+
+interface Filters {
+  supplier_id: string;
+  product_id: string;
+  date_from: string;
+  date_to: string;
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -29,23 +40,43 @@ export default function PurchaseOrdersPage() {
   const { hasPermission } = usePermissions();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<{
-    supplier_id: string;
+    supplier_ids: number[];
     notes: string;
     items: POItem[];
   }>({
-    supplier_id: "",
+    supplier_ids: [],
     notes: "",
     items: [{ product_id: "", qty: 1, price: 0 }],
   });
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    supplier_id: "",
+    product_id: "",
+    date_from: "",
+    date_to: "",
+  });
+  const [appliedFilters, setAppliedFilters] = useState<Filters>({
+    supplier_id: "",
+    product_id: "",
+    date_from: "",
+    date_to: "",
+  });
 
   const queryClient = useQueryClient();
 
+  const filterParams = new URLSearchParams();
+  if (appliedFilters.supplier_id) filterParams.set("supplier_id", appliedFilters.supplier_id);
+  if (appliedFilters.product_id) filterParams.set("product_id", appliedFilters.product_id);
+  if (appliedFilters.date_from) filterParams.set("date_from", appliedFilters.date_from);
+  if (appliedFilters.date_to) filterParams.set("date_to", appliedFilters.date_to);
+  const filterQuery = filterParams.toString();
+
   const { data, isLoading } = useQuery({
-    queryKey: ["purchase-orders"],
-    queryFn: () => api.get<any[]>("/purchase-orders"),
+    queryKey: ["purchase-orders", filterQuery],
+    queryFn: () => api.get<any[]>(`/purchase-orders${filterQuery ? `?${filterQuery}` : ""}`),
   });
   const { data: suppliersData } = useQuery({
     queryKey: ["suppliers-all"],
@@ -59,7 +90,7 @@ export default function PurchaseOrdersPage() {
   const saveMutation = useMutation({
     mutationFn: () =>
       api.post("/purchase-orders", {
-        supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
+        supplier_ids: form.supplier_ids,
         notes: form.notes,
         items: form.items.map((i) => ({
           product_id: Number(i.product_id),
@@ -71,7 +102,7 @@ export default function PurchaseOrdersPage() {
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       setShowModal(false);
       setForm({
-        supplier_id: "",
+        supplier_ids: [],
         notes: "",
         items: [{ product_id: "", qty: 1, price: 0 }],
       });
@@ -182,6 +213,92 @@ export default function PurchaseOrdersPage() {
         )}
       </div>
 
+      {/* ── Filter Bar ── */}
+      <div className="card">
+        <div className="card-body" style={{ padding: ".75rem 1.25rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: ".75rem", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className="btn btn-ghost"
+              style={{ fontSize: ".8125rem" }}
+            >
+              <Filter className="w-4 h-4" />
+              {t("common.filter")}
+              {(appliedFilters.supplier_id || appliedFilters.product_id || appliedFilters.date_from || appliedFilters.date_to) && (
+                <span className="badge badge-info" style={{ marginLeft: ".25rem", fontSize: ".6875rem" }}>
+                  {
+                    [appliedFilters.supplier_id, appliedFilters.product_id, appliedFilters.date_from, appliedFilters.date_to]
+                      .filter(Boolean).length
+                  }
+                </span>
+              )}
+            </button>
+            {(appliedFilters.supplier_id || appliedFilters.product_id || appliedFilters.date_from || appliedFilters.date_to) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters({ supplier_id: "", product_id: "", date_from: "", date_to: "" });
+                  setAppliedFilters({ supplier_id: "", product_id: "", date_from: "", date_to: "" });
+                }}
+                className="btn btn-ghost"
+                style={{ fontSize: ".8125rem", color: "var(--danger)" }}
+              >
+                <X className="w-4 h-4" />
+                {t("common.clear")}
+              </button>
+            )}
+          </div>
+          {showFilters && (
+            <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap", marginTop: ".75rem", paddingTop: ".75rem", borderTop: "1px solid var(--border)" }}>
+              <SearchSelect
+                label={t("purchaseOrders.table.supplier")}
+                options={suppliers}
+                value={filters.supplier_id}
+                onChange={(v) => setFilters({ ...filters, supplier_id: v })}
+                placeholder={t("purchaseOrders.form.supplierPlaceholder")}
+              />
+              <SearchSelect
+                label={t("purchaseOrders.table.items")}
+                options={products}
+                value={filters.product_id}
+                onChange={(v) => setFilters({ ...filters, product_id: v })}
+                placeholder={t("purchaseOrders.form.productPlaceholder")}
+              />
+              <div className="form-group" style={{ minWidth: "140px" }}>
+                <label className="form-label">{t("common.from")}</label>
+                <input
+                  type="date"
+                  value={filters.date_from}
+                  onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group" style={{ minWidth: "140px" }}>
+                <label className="form-label">{t("common.to")}</label>
+                <input
+                  type="date"
+                  value={filters.date_to}
+                  onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
+                  className="form-input"
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: ".5rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setAppliedFilters({ ...filters })}
+                  className="btn btn-primary"
+                  style={{ fontSize: ".8125rem" }}
+                >
+                  <Search className="w-4 h-4" />
+                  {t("common.search")}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {viewMode === "list" ? (
         <div className="table-card">
           <div style={{ overflowX: "auto" }}>
@@ -253,7 +370,17 @@ export default function PurchaseOrdersPage() {
                         {po.po_number}
                       </span>
                     </td>
-                    <td className="muted">{po.supplier?.name || "—"}</td>
+                    <td>
+                      {po.suppliers && po.suppliers.length > 0 ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: ".25rem" }}>
+                          {po.suppliers.map((s: any) => (
+                            <span key={s.id} className="badge badge-gray">{s.name}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
                     <td className="right" style={{ fontWeight: 600 }}>
                       {formatCurrency(po.total)}
                     </td>
@@ -374,9 +501,13 @@ export default function PurchaseOrdersPage() {
                       <h3 style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: ".25rem", fontFamily: "monospace", fontSize: "1rem" }}>
                         {po.po_number}
                       </h3>
-                      <p style={{ fontSize: ".8125rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                        {po.supplier?.name || "—"}
-                      </p>
+                      <div style={{ fontSize: ".8125rem", color: "var(--text-secondary)", lineHeight: 1.4, display: "flex", flexWrap: "wrap", gap: ".25rem" }}>
+                        {po.suppliers && po.suppliers.length > 0
+                          ? po.suppliers.map((s: any) => (
+                              <span key={s.id} className="badge badge-gray">{s.name}</span>
+                            ))
+                          : "—"}
+                      </div>
                       <p style={{ fontSize: ".8125rem", color: "var(--text-muted)", marginTop: ".2rem" }}>
                         {formatDate(po.created_at)}
                       </p>
@@ -529,22 +660,67 @@ export default function PurchaseOrdersPage() {
             <label className="form-label">
               {t("purchaseOrders.form.supplier")}
             </label>
-            <select
-              value={form.supplier_id}
-              onChange={(e) =>
-                setForm({ ...form, supplier_id: e.target.value })
-              }
-              className="form-select"
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: ".5rem",
+                padding: ".5rem .75rem",
+                background: "var(--bg)",
+                border: "1px solid var(--border)",
+                borderRadius: ".5rem",
+                minHeight: "2.5rem",
+              }}
             >
-              <option value="">
+              {suppliers.length === 0 ? (
+                <span style={{ fontSize: ".875rem", color: "var(--text-muted)" }}>
+                  {t("common.loading")}
+                </span>
+              ) : (
+                suppliers.map((s) => {
+                  const selected = form.supplier_ids.includes(s.id);
+                  return (
+                    <label
+                      key={s.id}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: ".375rem",
+                        padding: ".25rem .625rem",
+                        borderRadius: "999px",
+                        fontSize: ".8125rem",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        background: selected ? "var(--accent-light)" : "var(--bg-card)",
+                        border: selected ? "1px solid var(--accent)" : "1px solid var(--border)",
+                        color: selected ? "var(--accent)" : "var(--text-secondary)",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => {
+                          setForm({
+                            ...form,
+                            supplier_ids: selected
+                              ? form.supplier_ids.filter((id) => id !== s.id)
+                              : [...form.supplier_ids, s.id],
+                          });
+                        }}
+                        style={{ accentColor: "var(--accent)", margin: 0 }}
+                      />
+                      {s.name}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+            {form.supplier_ids.length === 0 && (
+              <span style={{ fontSize: ".75rem", color: "var(--text-muted)", marginTop: ".25rem" }}>
                 {t("purchaseOrders.form.supplierPlaceholder")}
-              </option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col gap-4">
@@ -582,32 +758,20 @@ export default function PurchaseOrdersPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="form-group md:col-span-2">
-                      <select
-                        required
+                      <SearchSelect
+                        options={products}
                         value={item.product_id}
-                        onChange={(e) => {
+                        onChange={(v) => {
                           const items = [...form.items];
-                          items[i] = {
-                            ...items[i],
-                            product_id: e.target.value,
-                          };
+                          items[i] = { ...items[i], product_id: v };
                           const p = products.find(
-                            (p) => p.id === Number(e.target.value),
+                            (p) => p.id === Number(v),
                           );
                           if (p) items[i].price = p.buy_price;
                           setForm({ ...form, items });
                         }}
-                        className="form-select"
-                      >
-                        <option value="">
-                          {t("purchaseOrders.form.productPlaceholder")}
-                        </option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder={t("purchaseOrders.form.productPlaceholder")}
+                      />
                     </div>
 
                     <div className="form-group">

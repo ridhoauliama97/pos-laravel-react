@@ -49,6 +49,7 @@ export interface Product {
   buy_price: number;
   sell_price: number;
   min_stock: number;
+  stock?: number;
   is_active: boolean;
   image?: string;
   category?: Category;
@@ -111,6 +112,7 @@ export interface Supplier {
   email?: string;
   address?: string;
   opening_balance: number;
+  is_active: boolean;
 }
 
 export interface Transaction {

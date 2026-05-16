@@ -15,8 +15,9 @@ import {
   UserCheck,
   Award,
   Activity,
-} from "lucide-react";
+} from "../components/icons";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Customer, CustomerStats } from "../types";
 import { useT } from "../i18n";
 import { usePermissions } from "../hooks/usePermissions";
@@ -32,24 +33,16 @@ const TIER_STYLE: Record<string, string> = {
 
 export default function CustomersPage() {
   const t = useT();
+  const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
-  const [showModal, setShowModal] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    is_active: true,
-    is_member: false,
-  });
   const queryClient = useQueryClient();
 
   const params = new URLSearchParams({ search, page: String(page) });
@@ -68,24 +61,6 @@ export default function CustomersPage() {
   });
 
   const stats = statsData?.data;
-
-  const saveMutation = useMutation({
-    mutationFn: (d: any) =>
-      editingId
-        ? api.put(`/customers/${editingId}`, d)
-        : api.post("/customers", d),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
-      queryClient.invalidateQueries({ queryKey: ["customers-stats"] });
-      setShowModal(false);
-      setEditingId(null);
-      setForm({ name: "", phone: "", email: "", address: "", is_active: true, is_member: false });
-      toast.success(
-        editingId ? t("customers.updated") : t("customers.created"),
-      );
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -142,11 +117,7 @@ export default function CustomersPage() {
         </div>
         {hasPermission(PERMISSIONS.CUSTOMERS_CREATE) && (
           <button
-            onClick={() => {
-              setEditingId(null);
-              setForm({ name: "", phone: "", email: "", address: "", is_active: true, is_member: false });
-              setShowModal(true);
-            }}
+            onClick={() => navigate("/customers/new")}
             className="btn btn-primary"
           >
             <Plus className="w-4 h-4" /> {t("customers.add")}
@@ -429,18 +400,7 @@ export default function CustomersPage() {
                         >
                           {hasPermission(PERMISSIONS.CUSTOMERS_EDIT) && (
                             <button
-                              onClick={() => {
-                                setEditingId(c.id);
-                                setForm({
-                                  name: c.name,
-                                  phone: c.phone || "",
-                                  email: c.email || "",
-                                  address: c.address || "",
-                                  is_active: c.is_active,
-                                  is_member: c.is_member,
-                                });
-                                setShowModal(true);
-                              }}
+                              onClick={() => navigate(`/customers/${c.id}/edit`)}
                               className="btn-icon edit"
                               title={t("common.edit")}
                             >
@@ -615,18 +575,7 @@ export default function CustomersPage() {
                 >
                   {hasPermission(PERMISSIONS.CUSTOMERS_EDIT) && (
                     <button
-                      onClick={() => {
-                        setEditingId(c.id);
-                        setForm({
-                          name: c.name,
-                          phone: c.phone || "",
-                          email: c.email || "",
-                          address: c.address || "",
-                          is_active: c.is_active,
-                          is_member: c.is_member,
-                        });
-                        setShowModal(true);
-                      }}
+                      onClick={() => navigate(`/customers/${c.id}/edit`)}
                       className="btn-icon edit"
                       title={t("common.edit")}
                     >
@@ -705,106 +654,6 @@ export default function CustomersPage() {
             </div>
           </div>
         )}
-
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editingId ? t("customers.editTitle") : t("customers.addTitle")}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="btn btn-ghost"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="submit"
-              form="customer-form"
-              disabled={saveMutation.isPending}
-              className="btn btn-primary"
-            >
-              {saveMutation.isPending ? t("common.saving") : t("common.save")}
-            </button>
-          </>
-        }
-      >
-        <form
-          id="customer-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveMutation.mutate(form);
-          }}
-          className="flex flex-col gap-4"
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "1rem",
-              marginBottom: "0.5rem",
-            }}
-          >
-            <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={form.is_active}
-                onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                className="form-checkbox"
-              />
-              {t("customers.form.isActive")}
-            </label>
-            <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={form.is_member}
-                onChange={(e) => setForm({ ...form, is_member: e.target.checked })}
-                className="form-checkbox"
-              />
-              {t("customers.form.isMember")}
-            </label>
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("customers.form.name")}</label>
-            <input
-              required
-              placeholder={t("customers.form.namePlaceholder")}
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("customers.form.phone")}</label>
-            <input
-              placeholder={t("customers.form.phonePlaceholder")}
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("customers.form.email")}</label>
-            <input
-              type="email"
-              placeholder={t("customers.form.emailPlaceholder")}
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t("customers.form.address")}</label>
-            <textarea
-              placeholder={t("customers.form.addressPlaceholder")}
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              className="form-textarea"
-              rows={2}
-            />
-          </div>
-        </form>
-      </Modal>
 
       <Modal
         isOpen={showBulkDeleteModal}

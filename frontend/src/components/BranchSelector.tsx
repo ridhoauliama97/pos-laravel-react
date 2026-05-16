@@ -1,5 +1,5 @@
 import { useAuthStore } from "../stores";
-import { Building2, ChevronDown } from "lucide-react";
+import { Building2, ChevronDown } from "./icons";
 import { useState } from "react";
 
 export default function BranchSelector() {

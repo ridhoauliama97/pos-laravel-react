@@ -3,7 +3,7 @@ import { api } from "../services/api";
 import { useAuthStore } from "../stores";
 import { useT } from "../i18n";
 import { useState, useEffect } from "react";
-import { Loader2, Camera, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Loader2, Camera, AlertTriangle, Eye, EyeOff } from "../components/icons";
 import toast from "react-hot-toast";
 import CropModal from "../components/CropModal";
 
