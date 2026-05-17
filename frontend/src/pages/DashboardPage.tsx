@@ -12,7 +12,7 @@ import {
   TrendingDown,
   AlertTriangle,
   ArrowRight,
-  CheckCircle,
+  PackageCheck,
   ArrowDown,
 } from "../components/icons";
 import {
@@ -65,10 +65,16 @@ export default function DashboardPage() {
     return (
       <div className="page-container">
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-14 h-14 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-4" style={{ color: "var(--danger)" }}>
+          <div
+            className="w-14 h-14 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-4"
+            style={{ color: "var(--danger)" }}
+          >
             <AlertTriangle className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+          <h2
+            className="text-lg font-semibold mb-1"
+            style={{ color: "var(--text-primary)" }}
+          >
             Gagal memuat dashboard
           </h2>
           <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
@@ -90,13 +96,17 @@ export default function DashboardPage() {
       <div className="page-container">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="skeleton h-[132px] rounded-xl" style={{ animationDelay: `${i * 60}ms` }} />
+            <div
+              key={i}
+              className="skeleton h-33 rounded-xl"
+              style={{ animationDelay: `${i * 60}ms` }}
+            />
           ))}
         </div>
-        <div className="skeleton h-[400px] rounded-xl" />
+        <div className="skeleton h-95 rounded-xl" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="skeleton h-[380px] rounded-xl" />
-          <div className="skeleton h-[380px] rounded-xl" />
+          <div className="skeleton h-95 rounded-xl" />
+          <div className="skeleton h-95 rounded-xl" />
         </div>
       </div>
     );
@@ -151,17 +161,21 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="month-badge">
-            <span className="month-badge-label">{t("dashboard.thisMonth")}</span>
+            <span className="month-badge-label">
+              {t("dashboard.thisMonth")}
+            </span>
             <span className="month-badge-value">
               {formatCurrency(s?.this_month_sales || 0)}
             </span>
           </div>
           {s && s.sales_growth_percent != null && (
-            <div className={`growth-badge ${s.sales_growth_percent >= 0 ? "growth-badge--up" : "growth-badge--down"}`}>
+            <div
+              className={`growth-badge ${s.sales_growth_percent >= 0 ? "growth-badge--up" : "growth-badge--down"}`}
+            >
               {s.sales_growth_percent >= 0 ? (
-                <TrendingUp className="w-[18px] h-[18px]" />
+                <TrendingUp className="w-4.5 h-4.5" />
               ) : (
-                <TrendingDown className="w-[18px] h-[18px]" />
+                <TrendingDown className="w-4.5 h-4.5" />
               )}
               <span className="growth-badge-value">
                 {s.sales_growth_percent >= 0 ? "+" : ""}
@@ -178,8 +192,10 @@ export default function DashboardPage() {
       {/* ── Stat Cards ── */}
       <div className="stats-grid">
         {cards.map((card, i) => {
-          const isUp = "change" in card && card.change != null && card.change >= 0;
-          const isDown = "change" in card && card.change != null && card.change < 0;
+          const isUp =
+            "change" in card && card.change != null && card.change >= 0;
+          const isDown =
+            "change" in card && card.change != null && card.change < 0;
           return (
             <div
               key={card.label}
@@ -195,9 +211,11 @@ export default function DashboardPage() {
               <p className="stat-card-value">{card.value}</p>
               <div className="stat-card-footer">
                 {"change" in card && card.change != null && (
-                  <span className={`stat-card-change ${isUp ? "stat-card-change--up" : "stat-card-change--down"}`}>
-                    {isUp && <TrendingUp className="w-[14px] h-[14px]" />}
-                    {isDown && <TrendingDown className="w-[14px] h-[14px]" />}
+                  <span
+                    className={`stat-card-change ${isUp ? "stat-card-change--up" : "stat-card-change--down"}`}
+                  >
+                    {isUp && <TrendingUp className="w-4.5 h-3.5" />}
+                    {isDown && <TrendingDown className="w-4.5 h-3.5" />}
                     {card.change >= 0 ? "+" : ""}
                     {card.change}%
                   </span>
@@ -222,8 +240,12 @@ export default function DashboardPage() {
             </div>
             {chartData.length > 0 && (
               <div className="panel-total">
-                <span className="panel-total-label">{t("dashboard.totalPeriod")}</span>
-                <span className="panel-total-value">{formatCurrency(totalChartRevenue)}</span>
+                <span className="panel-total-label">
+                  {t("dashboard.totalPeriod")}
+                </span>
+                <span className="panel-total-value">
+                  {formatCurrency(totalChartRevenue)}
+                </span>
               </div>
             )}
           </div>
@@ -236,8 +258,16 @@ export default function DashboardPage() {
                 >
                   <defs>
                     <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
+                      <stop
+                        offset="5%"
+                        stopColor="var(--accent)"
+                        stopOpacity={0.2}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--accent)"
+                        stopOpacity={0}
+                      />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -247,15 +277,29 @@ export default function DashboardPage() {
                   />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 11, fill: "var(--text-muted)", fontFamily: "Geist Mono, monospace" }}
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--text-muted)",
+                      fontFamily: "Geist Mono, monospace",
+                    }}
                     tickLine={false}
                     axisLine={false}
                     dy={8}
                     minTickGap={20}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: "var(--text-muted)", fontFamily: "Geist Mono, monospace" }}
-                    tickFormatter={(v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}jt` : v >= 1000 ? `${(v / 1000).toFixed(0)}rb` : String(v)}
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--text-muted)",
+                      fontFamily: "Geist Mono, monospace",
+                    }}
+                    tickFormatter={(v) =>
+                      v >= 1_000_000
+                        ? `${(v / 1_000_000).toFixed(1)}jt`
+                        : v >= 1000
+                          ? `${(v / 1000).toFixed(0)}rb`
+                          : String(v)
+                    }
                     tickLine={false}
                     axisLine={false}
                     dx={-8}
@@ -263,7 +307,11 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     content={<CustomChartTooltip />}
-                    cursor={{ stroke: "var(--border)", strokeWidth: 1.5, strokeDasharray: "4 4" }}
+                    cursor={{
+                      stroke: "var(--border)",
+                      strokeWidth: 1.5,
+                      strokeDasharray: "4 4",
+                    }}
                   />
                   <Area
                     type="monotone"
@@ -289,30 +337,46 @@ export default function DashboardPage() {
             <h2 className="panel-title">{t("dashboard.inventoryStatus")}</h2>
           </div>
           <div className="alert-list">
-            <Link to="/products?filter=low_stock" className="alert-card alert-card--warning">
+            <Link
+              to="/products?filter=low_stock"
+              className="alert-card alert-card--warning"
+            >
               <div className="alert-card-dot-wrap">
                 <span className="alert-dot alert-dot--amber" />
               </div>
               <div className="alert-card-body">
                 <div className="alert-card-top">
-                  <span className="alert-card-title">{t("dashboard.lowStock")}</span>
-                  <span className="alert-card-count">{s?.low_stock_count || 0}</span>
+                  <span className="alert-card-title">
+                    {t("dashboard.lowStock")}
+                  </span>
+                  <span className="alert-card-count">
+                    {s?.low_stock_count || 0}
+                  </span>
                 </div>
                 <p className="alert-card-desc">{t("dashboard.lowStockDesc")}</p>
               </div>
               <ArrowRight className="alert-card-arrow" />
             </Link>
 
-            <Link to="/products?filter=out_of_stock" className="alert-card alert-card--danger">
+            <Link
+              to="/products?filter=out_of_stock"
+              className="alert-card alert-card--danger"
+            >
               <div className="alert-card-dot-wrap">
                 <span className="alert-dot alert-dot--red" />
               </div>
               <div className="alert-card-body">
                 <div className="alert-card-top">
-                  <span className="alert-card-title">{t("dashboard.outOfStock")}</span>
-                  <span className="alert-card-count">{s?.out_of_stock_count || 0}</span>
+                  <span className="alert-card-title">
+                    {t("dashboard.outOfStock")}
+                  </span>
+                  <span className="alert-card-count">
+                    {s?.out_of_stock_count || 0}
+                  </span>
                 </div>
-                <p className="alert-card-desc">{t("dashboard.outOfStockDesc")}</p>
+                <p className="alert-card-desc">
+                  {t("dashboard.outOfStockDesc")}
+                </p>
               </div>
               <ArrowRight className="alert-card-arrow" />
             </Link>
@@ -331,18 +395,40 @@ export default function DashboardPage() {
           {s?.top_products && s.top_products.length > 0 ? (
             <div className="top-products-list">
               {s.top_products.map((p, i) => {
-                const maxRevenue = s.top_products.reduce((max, prod) => Math.max(max, prod.total_revenue), 1);
+                const maxRevenue = s.top_products.reduce(
+                  (max, prod) => Math.max(max, prod.total_revenue),
+                  1,
+                );
                 const pct = Math.max(4, (p.total_revenue / maxRevenue) * 100);
-                const colors = ["var(--accent)", "#f59e0b", "#10b981", "#8b5cf6", "#ec4899"];
+                const colors = [
+                  "var(--accent)",
+                  "#f59e0b",
+                  "#10b981",
+                  "#8b5cf6",
+                  "#ec4899",
+                ];
                 return (
-                  <div key={i} className="top-product-item" style={{ animationDelay: `${i * 60}ms` }}>
-                    <div className="top-product-rank" style={{ "--rank-color": colors[i] } as React.CSSProperties}>
+                  <div
+                    key={i}
+                    className="top-product-item"
+                    style={{ animationDelay: `${i * 60}ms` }}
+                  >
+                    <div
+                      className="top-product-rank"
+                      style={
+                        { "--rank-color": colors[i] } as React.CSSProperties
+                      }
+                    >
                       {i + 1}
                     </div>
                     <div className="top-product-info">
                       <div className="top-product-row">
-                        <span className="top-product-name">{p.product_name}</span>
-                        <span className="top-product-revenue">{formatCurrency(p.total_revenue)}</span>
+                        <span className="top-product-name">
+                          {p.product_name}
+                        </span>
+                        <span className="top-product-revenue">
+                          {formatCurrency(p.total_revenue)}
+                        </span>
                       </div>
                       <div className="top-product-bar-track">
                         <div
@@ -350,7 +436,9 @@ export default function DashboardPage() {
                           style={{ width: `${pct}%`, background: colors[i] }}
                         />
                       </div>
-                      <span className="top-product-qty">{p.total_qty} {t("dashboard.sold")}</span>
+                      <span className="top-product-qty">
+                        {p.total_qty} {t("dashboard.sold")}
+                      </span>
                     </div>
                   </div>
                 );
@@ -380,9 +468,7 @@ export default function DashboardPage() {
                   key={trx.id}
                   className="tx-item"
                 >
-                  <div className="tx-avatar">
-                    {getInitials(trx.user?.name)}
-                  </div>
+                  <div className="tx-avatar">{getInitials(trx.user?.name)}</div>
                   <div className="tx-info">
                     <span className="tx-invoice">{trx.invoice_no}</span>
                     <span className="tx-cashier">
@@ -390,10 +476,16 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div className="tx-right">
-                    <span className="tx-amount">{formatCurrency(trx.grand_total)}</span>
+                    <span className="tx-amount">
+                      {formatCurrency(trx.grand_total)}
+                    </span>
                     <span className={`tx-status tx-status--${trx.status}`}>
-                      {trx.status === "completed" && <CheckCircle className="w-3 h-3" />}
-                      {trx.status === "void" && <ArrowDown className="w-3 h-3" />}
+                      {trx.status === "completed" && (
+                        <PackageCheck className="w-3 h-3" />
+                      )}
+                      {trx.status === "void" && (
+                        <ArrowDown className="w-3 h-3" />
+                      )}
                       {trx.status}
                     </span>
                   </div>

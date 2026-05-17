@@ -19,6 +19,8 @@ import {
   PackagePlus,
   AlertCircle,
   Columns,
+  Filter,
+  X,
 } from "../components/icons";
 import type { Product, Category } from "../types";
 import { useT } from "../i18n";
@@ -112,9 +114,9 @@ export default function ProductsPage() {
   const columnPickerRef = useRef<HTMLDivElement>(null);
 
   // Filters
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [stockFilter, setStockFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({ category_id: "", is_active: "", stock_status: "" });
+  const [appliedFilters, setAppliedFilters] = useState({ category_id: "", is_active: "", stock_status: "" });
 
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(loadVisibleColumns);
 
@@ -155,12 +157,12 @@ export default function ProductsPage() {
   const categories = categoriesData?.data || [];
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["products", search, page, categoryFilter, statusFilter, stockFilter],
+    queryKey: ["products", search, page, appliedFilters],
     queryFn: () => {
       const params = new URLSearchParams({ search, page: String(page) });
-      if (categoryFilter) params.set("category_id", categoryFilter);
-      if (statusFilter) params.set("is_active", statusFilter);
-      if (stockFilter) params.set("stock_status", stockFilter);
+      if (appliedFilters.category_id) params.set("category_id", appliedFilters.category_id);
+      if (appliedFilters.is_active) params.set("is_active", appliedFilters.is_active);
+      if (appliedFilters.stock_status) params.set("stock_status", appliedFilters.stock_status);
       return api.get<Product[]>(`/products?${params}`);
     },
   });
@@ -339,14 +341,6 @@ export default function ProductsPage() {
           <h1 className="page-title">{t("products.title")}</h1>
           <p className="page-subtitle">{t("products.subtitle")}</p>
         </div>
-        {hasPermission(PERMISSIONS.PRODUCTS_CREATE) && (
-          <button
-            onClick={() => navigate("/products/new")}
-            className="btn btn-primary"
-          >
-            <Plus className="w-4 h-4" /> {t("products.add")}
-          </button>
-        )}
       </div>
 
       {/* Stats Widgets */}
@@ -390,158 +384,156 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Search and Filters */}
-      <div
-        className="actions-row"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "1rem",
-          gap: "1rem",
-          flexWrap: "wrap",
-        }}
-      >
-        <div className="search-wrap" style={{ maxWidth: "18rem", flexGrow: 1 }}>
-          <Search className="w-4 h-4" />
-          <input
-            type="text"
-            placeholder={t("products.searchPlaceholder")}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="search-input" aria-label={t("products.searchPlaceholder")}
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap", alignItems: "center" }}>
-          <select
-            value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-            className="form-select"
-            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 1.75rem .35rem .75rem" }} aria-label={t("products.filters.allCategories")}
-          >
-            <option value="">{t("products.filters.allCategories")}</option>
-            {categories.map((c: Category) => (
-              <option key={c.id} value={String(c.id)}>{c.name}</option>
-            ))}
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="form-select"
-            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 1.75rem .35rem .75rem" }} aria-label={t("products.filters.allStatus")}
-          >
-            <option value="">{t("products.filters.allStatus")}</option>
-            <option value="1">{t("products.filters.active")}</option>
-            <option value="0">{t("products.filters.inactive")}</option>
-          </select>
-
-          <select
-            value={stockFilter}
-            onChange={(e) => { setStockFilter(e.target.value); setPage(1); }}
-            className="form-select"
-            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem .75rem" }} aria-label={t("products.filters.allStock")}
-          >
-            <option value="">{t("products.filters.allStock")}</option>
-            <option value="habis">{t("products.filters.stockHabis")}</option>
-            <option value="low">{t("products.filters.stockLow")}</option>
-            <option value="ready">{t("products.filters.stockReady")}</option>
-          </select>
-
-          {selectedIds.length > 0 && hasPermission(PERMISSIONS.PRODUCTS_DELETE) && (
-            <button
-              onClick={() => setShowBulkDeleteModal(true)}
-              className="btn btn-danger"
-              style={{ padding: "0.5rem 1rem" }}
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete Selected ({selectedIds.length})
-            </button>
-          )}
-
+      {/* ── Toolbar: Search + Filter + Create + View Toggle ── */}
+      <div className="card">
+        <div className="card-body" style={{ padding: ".75rem 1.25rem" }}>
           <div
-            className="view-toggle"
             style={{
               display: "flex",
-              background: "var(--bg)",
-              padding: "0.25rem",
-              borderRadius: "0.5rem",
-              border: "1px solid var(--border)",
+              alignItems: "center",
+              gap: ".75rem",
+              flexWrap: "wrap",
             }}
           >
-            {viewMode === "list" && (
-            <div ref={columnPickerRef} style={{ position: "relative" }}>
+            {/* Left: Product Search */}
+            <div style={{ flex: 1, minWidth: "200px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "var(--bg)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  padding: "0 .75rem",
+                }}
+              >
+                <Search
+                  className="w-4 h-4"
+                  style={{ color: "var(--text-muted)", flexShrink: 0 }}
+                />
+                <input
+                  type="text"
+                  placeholder={t("products.searchPlaceholder")}
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    padding: ".5rem .625rem",
+                    fontSize: ".875rem",
+                    color: "var(--text-primary)",
+                    minWidth: 0,
+                  }}
+                  aria-label={t("products.searchPlaceholder")}
+                />
+              </div>
+            </div>
+
+            {/* Right: Filter + Create + Bulk Delete + View Toggle */}
+            <div style={{ flex: 1, display: "flex", gap: ".5rem", alignItems: "center", justifyContent: "flex-end", minWidth: "fit-content" }}>
               <button
                 type="button"
-                onClick={() => setShowColumnPicker((p) => !p)}
-                className={`btn-icon ${showColumnPicker ? "active" : ""}`}
-                style={{
-                  background: showColumnPicker ? "var(--bg-card)" : "transparent",
-                  boxShadow: showColumnPicker ? "var(--shadow-sm)" : "none",
-                }}
-                title={t("products.toggleColumns")}
-                aria-label={t("products.toggleColumns")}
-                aria-expanded={showColumnPicker}
+                onClick={() => setShowFilters(!showFilters)}
+                className="btn btn-ghost"
+                style={{ fontSize: ".8125rem" }}
               >
-                <Columns className="w-4 h-4" />
+                <Filter className="w-4 h-4" />
+                {t("common.filter")}
+                {(appliedFilters.category_id || appliedFilters.is_active || appliedFilters.stock_status) && (
+                  <span
+                    className="badge badge-info"
+                    style={{ marginLeft: ".25rem", fontSize: ".6875rem" }}
+                  >
+                    {[appliedFilters.category_id, appliedFilters.is_active, appliedFilters.stock_status].filter(Boolean).length}
+                  </span>
+                )}
               </button>
-              {showColumnPicker && (
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "100%",
-                    marginTop: "0.375rem",
-                    background: "var(--bg-card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "0.625rem",
-                    boxShadow: "var(--shadow-lg)",
-                    padding: "0.5rem",
-                    minWidth: "12rem",
-                    maxHeight: "min(70vh, 24rem)",
-                    overflowY: "auto",
-                    zIndex: 50,
+              {(appliedFilters.category_id || appliedFilters.is_active || appliedFilters.stock_status) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters({ category_id: "", is_active: "", stock_status: "" });
+                    setAppliedFilters({ category_id: "", is_active: "", stock_status: "" });
+                    setPage(1);
                   }}
-                  onClick={(e) => e.stopPropagation()}
+                  className="btn btn-ghost"
+                  style={{ fontSize: ".8125rem", color: "var(--danger)" }}
                 >
-                  <div style={{ fontSize: ".75rem", fontWeight: 600, color: "var(--muted)", padding: "0.25rem 0.5rem 0.375rem", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                    {t("products.columns")}
-                  </div>
-                  {mainColumnDefs.map((col) => (
-                    <label
-                      key={col.key}
+                  <X className="w-4 h-4" />
+                  {t("common.clear")}
+                </button>
+              )}
+              {hasPermission(PERMISSIONS.PRODUCTS_CREATE) && (
+                <button
+                  onClick={() => navigate("/products/new")}
+                  className="btn btn-primary"
+                >
+                  <Plus className="w-4 h-4" /> {t("products.add")}
+                </button>
+              )}
+              {selectedIds.length > 0 && hasPermission(PERMISSIONS.PRODUCTS_DELETE) && (
+                <button
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  className="btn btn-danger"
+                  style={{ padding: "0.5rem 1rem" }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {t("common.delete")} ({selectedIds.length})
+                </button>
+              )}
+              <div
+                style={{
+                  display: "flex",
+                  background: "var(--bg-hover)",
+                  padding: "0.25rem",
+                  borderRadius: "0.5rem",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                {viewMode === "list" && (
+                <div ref={columnPickerRef} style={{ position: "relative" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowColumnPicker((p) => !p)}
+                    className={`btn-icon ${showColumnPicker ? "active" : ""}`}
+                    style={{
+                      background: showColumnPicker ? "var(--bg-card)" : "transparent",
+                      boxShadow: showColumnPicker ? "var(--shadow-sm)" : "none",
+                    }}
+                    title={t("products.toggleColumns")}
+                    aria-label={t("products.toggleColumns")}
+                    aria-expanded={showColumnPicker}
+                  >
+                    <Columns className="w-4 h-4" />
+                  </button>
+                  {showColumnPicker && (
+                    <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        padding: "0.375rem 0.5rem",
-                        borderRadius: "0.375rem",
-                        cursor: col.key === "name" ? "not-allowed" : "pointer",
-                        fontSize: ".8125rem",
-                        color: "var(--text)",
-                        opacity: col.key === "name" ? 0.7 : 1,
+                        position: "absolute",
+                        right: 0,
+                        top: "100%",
+                        marginTop: "0.375rem",
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "0.625rem",
+                        boxShadow: "var(--shadow-lg)",
+                        padding: "0.5rem",
+                        minWidth: "12rem",
+                        maxHeight: "min(70vh, 24rem)",
+                        overflowY: "auto",
+                        zIndex: 50,
                       }}
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.includes(col.key)}
-                        onChange={() => toggleColumn(col.key)}
-                        disabled={col.key === "name"}
-                        style={{ accentColor: "var(--primary)" }}
-                      />
-                      {t(col.labelKey)}
-                    </label>
-                  ))}
-                  {optionalColumnDefs.length > 0 && (
-                    <>
-                      <div style={{ fontSize: ".75rem", fontWeight: 600, color: "var(--muted)", padding: "0.5rem 0.5rem 0.375rem", marginTop: "0.25rem", borderTop: "1px solid var(--border)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                        {t("products.columnsExtra")}
+                      <div style={{ fontSize: ".75rem", fontWeight: 600, color: "var(--muted)", padding: "0.25rem 0.5rem 0.375rem", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        {t("products.columns")}
                       </div>
-                      {optionalColumnDefs.map((col) => (
+                      {mainColumnDefs.map((col) => (
                         <label
                           key={col.key}
                           style={{
@@ -550,49 +542,141 @@ export default function ProductsPage() {
                             gap: "0.5rem",
                             padding: "0.375rem 0.5rem",
                             borderRadius: "0.375rem",
-                            cursor: "pointer",
+                            cursor: col.key === "name" ? "not-allowed" : "pointer",
                             fontSize: ".8125rem",
                             color: "var(--text)",
+                            opacity: col.key === "name" ? 0.7 : 1,
                           }}
                         >
                           <input
                             type="checkbox"
                             checked={visibleColumns.includes(col.key)}
                             onChange={() => toggleColumn(col.key)}
+                            disabled={col.key === "name"}
                             style={{ accentColor: "var(--primary)" }}
                           />
                           {t(col.labelKey)}
                         </label>
                       ))}
-                    </>
+                      {optionalColumnDefs.length > 0 && (
+                        <>
+                          <div style={{ fontSize: ".75rem", fontWeight: 600, color: "var(--muted)", padding: "0.5rem 0.5rem 0.375rem", marginTop: "0.25rem", borderTop: "1px solid var(--border)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                            {t("products.columnsExtra")}
+                          </div>
+                          {optionalColumnDefs.map((col) => (
+                            <label
+                              key={col.key}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                padding: "0.375rem 0.5rem",
+                                borderRadius: "0.375rem",
+                                cursor: "pointer",
+                                fontSize: ".8125rem",
+                                color: "var(--text)",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={visibleColumns.includes(col.key)}
+                                onChange={() => toggleColumn(col.key)}
+                                style={{ accentColor: "var(--primary)" }}
+                              />
+                              {t(col.labelKey)}
+                            </label>
+                          ))}
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+                )}
+                <button
+                  onClick={() => { setViewMode("list"); setShowColumnPicker(false); }}
+                  className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
+                  style={{
+                    background: viewMode === "list" ? "var(--bg-card)" : "transparent",
+                    boxShadow: viewMode === "list" ? "var(--shadow-sm)" : "none",
+                  }}
+                  title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`btn-icon ${viewMode === "grid" ? "active" : ""}`}
+                  style={{
+                    background: viewMode === "grid" ? "var(--bg-card)" : "transparent",
+                    boxShadow: viewMode === "grid" ? "var(--shadow-sm)" : "none",
+                  }}
+                  title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            )}
-            <button
-              onClick={() => { setViewMode("list"); setShowColumnPicker(false); }}
-              className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
-              style={{
-                background: viewMode === "list" ? "var(--bg-card)" : "transparent",
-                boxShadow: viewMode === "list" ? "var(--shadow-sm)" : "none",
-              }}
-              title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`btn-icon ${viewMode === "grid" ? "active" : ""}`}
-              style={{
-                background: viewMode === "grid" ? "var(--bg-card)" : "transparent",
-                boxShadow: viewMode === "grid" ? "var(--shadow-sm)" : "none",
-              }}
-              title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
           </div>
+          {showFilters && (
+            <div
+              style={{
+                display: "flex",
+                gap: ".75rem",
+                flexWrap: "wrap",
+                marginTop: ".75rem",
+                paddingTop: ".75rem",
+                borderTop: "1px solid var(--border)",
+              }}
+            >
+              <select
+                value={filters.category_id}
+                onChange={(e) => setFilters({ ...filters, category_id: e.target.value })}
+                className="form-select"
+                style={{ flex: 1, minWidth: "150px", fontSize: ".8125rem", padding: ".35rem 1.75rem .35rem .75rem" }}
+                aria-label={t("products.filters.allCategories")}
+              >
+                <option value="">{t("products.filters.allCategories")}</option>
+                {categories.map((c: Category) => (
+                  <option key={c.id} value={String(c.id)}>{c.name}</option>
+                ))}
+              </select>
+              <select
+                value={filters.is_active}
+                onChange={(e) => setFilters({ ...filters, is_active: e.target.value })}
+                className="form-select"
+                style={{ flex: 1, minWidth: "150px", fontSize: ".8125rem", padding: ".35rem 1.75rem .35rem .75rem" }}
+                aria-label={t("products.filters.allStatus")}
+              >
+                <option value="">{t("products.filters.allStatus")}</option>
+                <option value="1">{t("products.filters.active")}</option>
+                <option value="0">{t("products.filters.inactive")}</option>
+              </select>
+              <select
+                value={filters.stock_status}
+                onChange={(e) => setFilters({ ...filters, stock_status: e.target.value })}
+                className="form-select"
+                style={{ flex: 1, minWidth: "150px", fontSize: ".8125rem", padding: ".35rem 1.75rem .35rem .75rem" }}
+                aria-label={t("products.filters.allStock")}
+              >
+                <option value="">{t("products.filters.allStock")}</option>
+                <option value="habis">{t("products.filters.stockHabis")}</option>
+                <option value="low">{t("products.filters.stockLow")}</option>
+                <option value="ready">{t("products.filters.stockReady")}</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  setAppliedFilters({ ...filters });
+                  setPage(1);
+                }}
+                className="btn btn-primary"
+                style={{ fontSize: ".8125rem", padding: ".25rem .65rem", lineHeight: "1.4", border: "1px solid var(--accent)" }}
+              >
+                <Search className="w-4 h-4" />
+                {t("common.search")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
