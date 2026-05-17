@@ -25,7 +25,7 @@ import {
   Home,
   ChevronRight,
 } from "./icons";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore, useCartStore } from "../stores";
 import { useSidebarStore } from "../stores/sidebarStore";
@@ -255,11 +255,7 @@ function Breadcrumb() {
 
   return (
     <nav className="breadcrumb" aria-label="Breadcrumb">
-      <Link
-        to="/dashboard"
-        className="breadcrumb-home"
-        aria-label="Home"
-      >
+      <Link to="/dashboard" className="breadcrumb-home" aria-label="Home">
         <Home className="w-3.5 h-3.5" />
       </Link>
       {crumbs.map((crumb, i) => (
@@ -279,12 +275,24 @@ function Breadcrumb() {
 }
 
 /* --------------------------------------------------
+   Nav section labels (visible in expanded, divider in collapsed)
+   -------------------------------------------------- */
+const SECTION_MAP: Record<string, string> = {
+  "/dashboard": "sectionOperational",
+  "/products": "sectionCatalog",
+  "/customers": "sectionRelations",
+  "/stock": "sectionInventory",
+  "/reports": "sectionReports",
+  "/settings": "sectionSystem",
+};
+
+/* --------------------------------------------------
    Main Layout
    -------------------------------------------------- */
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { collapsed, toggle: toggleCollapsed } = useSidebarStore();
-  const { selectedBranchId, setTenant } = useAuthStore();
+  const { selectedBranchId, setTenant, tenant } = useAuthStore();
   const { hasAccess } = usePermissions();
   const clearCart = useCartStore((s) => s.clearCart);
   const queryClient = useQueryClient();
@@ -345,90 +353,76 @@ export default function AppLayout() {
   }, [profileData, setTenant]);
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: "var(--bg)" }}>
-      {/* ==================== TOPBAR ==================== */}
-      <header
-        className="shrink-0 h-14 border-b flex items-center px-4 gap-3 z-40 lg:z-50 relative"
-        style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+    <div className="flex h-screen" style={{ background: "var(--bg)" }}>
+      {/* ==================== SIDEBAR ==================== */}
+      <aside
+        id="main-sidebar"
+        className={cn(
+          "sidebar fixed inset-y-0 left-0 z-50 lg:static lg:inset-auto flex flex-col border-r transition-all duration-300 ease-in-out",
+          collapsed ? "sidebar--collapsed" : "sidebar--expanded",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        )}
+        style={{
+          background: "var(--bg-sidebar)",
+          borderColor: "var(--border)",
+        }}
+        role="navigation"
+        aria-label="Main navigation"
       >
-        {/* Mobile hamburger */}
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="lg:hidden shrink-0 p-1.5 rounded-md hover:bg-[var(--bg-hover)]"
+        {/* Brand header */}
+        <div
+          className="shrink-0 border-b relative"
+          style={{ borderColor: "var(--border)", height: "3.5rem" }}
         >
-          <Menu className="w-5 h-5" style={{ color: "var(--text-secondary)" }} />
-        </button>
-
-        {/* Brand / Logo */}
-        <div className="flex items-center shrink-0 w-[var(--sidebar-width,240px)] max-w-[240px]">
-          <Link to="/dashboard" className="flex-1 min-w-0">
-            <BranchDropdown />
+          <Link to="/dashboard" className="h-full flex items-center">
+            {collapsed ? (
+              <div className="flex items-center justify-center w-16">
+                {tenant?.logo ? (
+                  <img
+                    src={tenant.logo}
+                    alt=""
+                    className="w-7 h-7 rounded object-contain"
+                  />
+                ) : (
+                  <div
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold"
+                    style={{ background: "var(--accent)", color: "#fff" }}
+                  >
+                    {tenant?.name?.charAt(0)?.toUpperCase() || "P"}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full px-3">
+                <BranchDropdown />
+              </div>
+            )}
           </Link>
-        </div>
-
-        {/* Desktop Sidebar Toggle */}
-        <button
-          onClick={toggleCollapsed}
-          className="hidden lg:flex items-center justify-center w-8 h-8 rounded-md hover:bg-[var(--bg-hover)] transition-colors shrink-0"
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? (
-            <PanelLeftOpen
-              className="w-[18px] h-[18px]"
-              style={{ color: "var(--text-secondary)" }}
-            />
-          ) : (
-            <PanelLeftClose
-              className="w-[18px] h-[18px]"
-              style={{ color: "var(--text-secondary)" }}
-            />
-          )}
-        </button>
-
-        {/* Separator */}
-        <div className="hidden lg:block w-px h-5" style={{ background: "var(--border)" }} />
-
-        {/* Breadcrumb */}
-        <div className="flex-1 min-w-0 overflow-hidden flex items-center">
-          <Breadcrumb />
-        </div>
-      </header>
-
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* ==================== SIDEBAR ==================== */}
-        <aside
-          className={cn(
-            "sidebar fixed inset-y-0 left-0 z-50 lg:z-0 flex flex-col transition-all duration-300 ease-in-out lg:static lg:inset-auto border-r",
-            collapsed ? "sidebar--collapsed" : "sidebar--expanded",
-            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          )}
-          style={{
-            background: "var(--bg-sidebar)",
-            borderColor: "var(--border)",
-          }}
-        >
-          {/* Mobile Header (Only visible on mobile sidebar) */}
-          <div
-            className="px-3 py-4 border-b shrink-0 flex items-center justify-between lg:hidden"
-            style={{ borderColor: "var(--border)" }}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden shrink-0 absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-(--bg-hover)"
+            aria-label="Close navigation menu"
           >
-            <Link to="/dashboard" className="flex-1 min-w-0">
-              <BranchDropdown />
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="shrink-0 ml-2 p-1.5 rounded-md hover:bg-[var(--bg-hover)]"
-            >
-              <X className="w-5 h-5" style={{ color: "var(--text-secondary)" }} />
-            </button>
-          </div>
+            <X
+              className="w-5 h-5"
+              style={{ color: "var(--text-secondary)" }}
+              aria-hidden
+            />
+          </button>
+        </div>
 
-          {/* Nav */}
+        {/* Nav */}
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {navItems.map((item) => {
             if (!hasAccess(item.permissions)) return null;
 
+            const sectionKey = SECTION_MAP[item.to];
+            const sectionLabel = sectionKey
+              ? t(`nav.${sectionKey}`)
+              : undefined;
             const isDropdown = item.to === "/settings" || item.to === "/stock";
+
+            let itemNode: React.ReactNode;
 
             if (isDropdown) {
               const subItems =
@@ -440,14 +434,9 @@ export default function AppLayout() {
                   : () => setStockOpen(!stockOpen);
               const isActive = location.pathname.startsWith(item.to);
 
-              // Collapsed: show parent icon only, clicking navigates to first sub-item
               if (collapsed) {
-                return (
-                  <SidebarTooltip
-                    key={item.to}
-                    label={item.label}
-                    show={collapsed}
-                  >
+                itemNode = (
+                  <SidebarTooltip label={item.label} show={collapsed}>
                     <Link
                       to={subItems[0]?.to || item.to}
                       onClick={() => setSidebarOpen(false)}
@@ -468,14 +457,85 @@ export default function AppLayout() {
                     </Link>
                   </SidebarTooltip>
                 );
+              } else {
+                itemNode = (
+                  <div>
+                    <button
+                      onClick={() => toggleFn()}
+                      className={cn(
+                        "sidebar-nav-item",
+                        isActive && "sidebar-nav-item--active",
+                      )}
+                      style={{
+                        background: isActive
+                          ? "var(--accent-light)"
+                          : "transparent",
+                        color: isActive
+                          ? "var(--accent)"
+                          : "var(--text-secondary)",
+                      }}
+                    >
+                      <item.icon className="w-[18px] h-[18px] shrink-0" />
+                      <span className="sidebar-nav-label">{item.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          "w-3.5 h-3.5 transition-transform shrink-0",
+                          isOpen && "rotate-180",
+                        )}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div
+                        className="ml-4 mt-0.5 pl-3 border-l space-y-0.5"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        {subItems.map((sub) => {
+                          if (!hasAccess(sub.permissions)) return null;
+                          return (
+                            <Link
+                              key={sub.to}
+                              to={sub.to}
+                              onClick={() => setSidebarOpen(false)}
+                              className={cn(
+                                "sidebar-nav-item",
+                                isActiveSub(location.pathname, sub.to) &&
+                                  "sidebar-nav-item--active",
+                              )}
+                              style={{
+                                background: isActiveSub(
+                                  location.pathname,
+                                  sub.to,
+                                )
+                                  ? "var(--accent-light)"
+                                  : "transparent",
+                                color: isActiveSub(location.pathname, sub.to)
+                                  ? "var(--accent)"
+                                  : "var(--text-muted)",
+                              }}
+                            >
+                              <sub.icon className="w-4 h-4 shrink-0" />
+                              <span className="sidebar-nav-label">
+                                {sub.label}
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
               }
-
-              return (
-                <div key={item.to}>
-                  <button
-                    onClick={() => toggleFn()}
+            } else {
+              // Regular nav item
+              const isActive = location.pathname === item.to;
+              itemNode = (
+                <SidebarTooltip label={item.label} show={collapsed}>
+                  <Link
+                    to={item.to}
+                    onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "sidebar-nav-item",
+                      collapsed && "sidebar-nav-item--icon-only",
                       isActive && "sidebar-nav-item--active",
                     )}
                     style={{
@@ -488,85 +548,24 @@ export default function AppLayout() {
                     }}
                   >
                     <item.icon className="w-[18px] h-[18px] shrink-0" />
-                    <span className="sidebar-nav-label">{item.label}</span>
-                    <ChevronDown
-                      className={cn(
-                        "w-3.5 h-3.5 transition-transform shrink-0",
-                        isOpen && "rotate-180",
-                      )}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div
-                      className="ml-4 mt-0.5 pl-3 border-l space-y-0.5"
-                      style={{ borderColor: "var(--border)" }}
-                    >
-                      {subItems.map((sub) => {
-                        if (!hasAccess(sub.permissions)) return null;
-                        return (
-                          <Link
-                            key={sub.to}
-                            to={sub.to}
-                            onClick={() => setSidebarOpen(false)}
-                            className={cn(
-                              "sidebar-nav-item",
-                              isActiveSub(location.pathname, sub.to) &&
-                                "sidebar-nav-item--active",
-                            )}
-                            style={{
-                              background: isActiveSub(
-                                location.pathname,
-                                sub.to,
-                              )
-                                ? "var(--accent-light)"
-                                : "transparent",
-                              color: isActiveSub(location.pathname, sub.to)
-                                ? "var(--accent)"
-                                : "var(--text-muted)",
-                            }}
-                          >
-                            <sub.icon className="w-4 h-4 shrink-0" />
-                            <span className="sidebar-nav-label">
-                              {sub.label}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                    {!collapsed && (
+                      <span className="sidebar-nav-label">{item.label}</span>
+                    )}
+                  </Link>
+                </SidebarTooltip>
               );
             }
 
-            // Regular nav item
-            const isActive = location.pathname === item.to;
             return (
-              <SidebarTooltip
-                key={item.to}
-                label={item.label}
-                show={collapsed}
-              >
-                <Link
-                  to={item.to}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "sidebar-nav-item",
-                    collapsed && "sidebar-nav-item--icon-only",
-                    isActive && "sidebar-nav-item--active",
-                  )}
-                  style={{
-                    background: isActive
-                      ? "var(--accent-light)"
-                      : "transparent",
-                    color: isActive ? "var(--accent)" : "var(--text-secondary)",
-                  }}
-                >
-                  <item.icon className="w-[18px] h-[18px] shrink-0" />
-                  {!collapsed && (
-                    <span className="sidebar-nav-label">{item.label}</span>
-                  )}
-                </Link>
-              </SidebarTooltip>
+              <Fragment key={item.to}>
+                {sectionLabel && !collapsed && (
+                  <p className="sidebar-section-label">{sectionLabel}</p>
+                )}
+                {sectionLabel && collapsed && item.to !== "/dashboard" && (
+                  <div className="sidebar-section-divider" />
+                )}
+                {itemNode}
+              </Fragment>
             );
           })}
         </nav>
@@ -583,15 +582,75 @@ export default function AppLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+          className="sidebar-overlay lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Sidebar overlay"
         />
       )}
 
-      {/* ==================== MAIN CONTENT ==================== */}
-      <main className="flex-1 overflow-auto p-4 lg:p-6 min-w-0" style={{ background: "var(--bg)" }}>
-        <Outlet />
-      </main>
+      {/* ==================== CONTENT ==================== */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Header */}
+        <header
+          className="shrink-0 h-14 border-b flex items-center px-4 gap-3"
+          style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden shrink-0 p-1.5 rounded-md hover:bg-(--bg-hover)"
+            aria-label="Open navigation menu"
+            aria-expanded={sidebarOpen}
+            aria-controls="main-sidebar"
+          >
+            <Menu
+              className="w-5 h-5"
+              style={{ color: "var(--text-secondary)" }}
+              aria-hidden
+            />
+          </button>
+
+          <button
+            onClick={toggleCollapsed}
+            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-md hover:bg-(--bg-hover) transition-colors shrink-0"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
+          >
+            {collapsed ? (
+              <PanelLeftOpen
+                className="w-4.5 h-[18px]"
+                style={{ color: "var(--text-secondary)" }}
+                aria-hidden
+              />
+            ) : (
+              <PanelLeftClose
+                className="w-4.5 h-[18px]"
+                style={{ color: "var(--text-secondary)" }}
+                aria-hidden
+              />
+            )}
+          </button>
+
+          <div
+            className="hidden lg:block w-px h-5"
+            style={{ background: "var(--border)" }}
+          />
+
+          <div className="flex-1 min-w-0 overflow-hidden flex items-center">
+            <Breadcrumb />
+          </div>
+        </header>
+
+        {/* Main */}
+        <main
+          className="flex-1 overflow-auto p-4 lg:px-8 lg:py-6 min-w-0"
+          style={{ background: "var(--bg)" }}
+        >
+          <Outlet />
+        </main>
       </div>
     </div>
   );

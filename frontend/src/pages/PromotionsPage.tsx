@@ -10,6 +10,7 @@ import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
 import { Modal } from "../components/Modal";
 import { SearchSelect } from "../components/SearchSelect";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 export default function PromotionsPage() {
   const t = useT();
@@ -17,6 +18,7 @@ export default function PromotionsPage() {
   const canManage = hasPermission(PERMISSIONS.SETTINGS_PROMOTIONS);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [form, setForm] = useState({
     name: "",
     category_id: "",
@@ -254,17 +256,14 @@ export default function PromotionsPage() {
                         setShowModal(true);
                       }}
                       className="btn-icon edit"
-                      title={t("common.edit")}
+                      title={t("common.edit")} aria-label={t("common.edit")}
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(t("promotions.deleteConfirm")))
-                          deleteMutation.mutate(p.id);
-                      }}
+                      onClick={() => setDeleteConfirmId(p.id)}
                       className="btn-icon danger"
-                      title={t("common.delete")}
+                      title={t("common.delete")} aria-label={t("common.delete")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -316,6 +315,8 @@ export default function PromotionsPage() {
             <label className="form-label">{t("promotions.form.name")} *</label>
             <input
               required
+              name="name"
+              autoComplete="off"
               placeholder={t("promotions.form.namePlaceholder")}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -343,6 +344,8 @@ export default function PromotionsPage() {
           <div className="form-group">
             <label className="form-label">{t("promotions.form.type")} *</label>
             <select
+              name="type"
+              autoComplete="off"
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
               className="form-select"
@@ -357,6 +360,8 @@ export default function PromotionsPage() {
             <input
               type="number"
               required
+              name="value"
+              autoComplete="off"
               value={form.value}
               onChange={(e) =>
                 setForm({ ...form, value: Number(e.target.value) })
@@ -370,6 +375,8 @@ export default function PromotionsPage() {
             </label>
             <input
               type="number"
+              name="min_purchase"
+              autoComplete="off"
               value={form.min_purchase}
               onChange={(e) =>
                 setForm({ ...form, min_purchase: Number(e.target.value) })
@@ -385,6 +392,8 @@ export default function PromotionsPage() {
               <input
                 type="date"
                 required
+                name="start_date"
+                autoComplete="off"
                 value={form.start_date}
                 onChange={(e) =>
                   setForm({ ...form, start_date: e.target.value })
@@ -399,6 +408,8 @@ export default function PromotionsPage() {
               <input
                 type="date"
                 required
+                name="end_date"
+                autoComplete="off"
                 value={form.end_date}
                 onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                 className="form-input"
@@ -407,6 +418,20 @@ export default function PromotionsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId !== null) deleteMutation.mutate(deleteConfirmId);
+        }}
+        title={t("common.delete")}
+        message={t("promotions.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

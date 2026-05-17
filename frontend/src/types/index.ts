@@ -50,6 +50,7 @@ export interface Product {
   sell_price: number;
   min_stock: number;
   stock?: number;
+  available_stock?: number;
   is_active: boolean;
   image?: string;
   category?: Category;

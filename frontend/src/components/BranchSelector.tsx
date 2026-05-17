@@ -18,6 +18,8 @@ export default function BranchSelector() {
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors"
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
         <Building2 className="w-4 h-4 text-gray-500 shrink-0" />
         <span className="truncate text-gray-700 font-medium">

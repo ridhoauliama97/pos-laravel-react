@@ -58,99 +58,99 @@ export default function StockMutationsPage() {
 
       <>
         <div className="filter-pills">
-            {[
-              { val: "", label: t("common.all") },
-              { val: "in", label: t("common.incoming") },
-              { val: "out", label: t("common.outgoing") },
-            ].map((f) => (
-              <button
-                key={f.val}
-                onClick={() => setTypeFilter(f.val)}
-                className={`pill ${typeFilter === f.val ? "active" : ""}`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          {[
+            { val: "", label: t("common.all") },
+            { val: "in", label: t("common.incoming") },
+            { val: "out", label: t("common.outgoing") },
+          ].map((f) => (
+            <button
+              key={f.val}
+              onClick={() => setTypeFilter(f.val)}
+              className={`pill ${typeFilter === f.val ? "active" : ""}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-          <div className="table-card">
-            <div style={{ overflowX: "auto" }}>
-              <table>
-                <thead>
+        <div className="table-card">
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>{t("stockMutations.table.product")}</th>
+                  <th>{t("stockMutations.table.variant")}</th>
+                  <th className="center">{t("stockMutations.table.type")}</th>
+                  <th className="right">{t("stockMutations.table.qty")}</th>
+                  <th className="right">
+                    {t("stockMutations.table.stockBefore")}
+                  </th>
+                  <th className="right">
+                    {t("stockMutations.table.stockAfter")}
+                  </th>
+                  <th>{t("stockMutations.table.reference")}</th>
+                  <th>{t("stockMutations.table.user")}</th>
+                  <th>{t("stockMutations.table.date")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
                   <tr>
-                    <th>{t("stockMutations.table.product")}</th>
-                    <th>{t("stockMutations.table.variant")}</th>
-                    <th className="center">{t("stockMutations.table.type")}</th>
-                    <th className="right">{t("stockMutations.table.qty")}</th>
-                    <th className="right">
-                      {t("stockMutations.table.stockBefore")}
-                    </th>
-                    <th className="right">
-                      {t("stockMutations.table.stockAfter")}
-                    </th>
-                    <th>{t("stockMutations.table.reference")}</th>
-                    <th>{t("stockMutations.table.user")}</th>
-                    <th>{t("stockMutations.table.date")}</th>
+                    <td colSpan={9} className="table-empty">
+                      {t("stockMutations.loading")}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={9} className="table-empty">
-                        {t("stockMutations.loading")}
+                ) : mutations.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="table-empty">
+                      <ArrowUpDown
+                        style={{
+                          width: "2.5rem",
+                          height: "2.5rem",
+                          margin: "0 auto .75rem",
+                          opacity: 0.3,
+                        }}
+                      />
+                      <p>{t("stockMutations.empty")}</p>
+                    </td>
+                  </tr>
+                ) : (
+                  mutations.map((m) => (
+                    <tr key={m.id}>
+                      <td style={{ fontWeight: 500 }}>
+                        {m.product?.name || "—"}
+                      </td>
+                      <td className="muted">{m.variant?.name || "—"}</td>
+                      <td className="center">
+                        <span
+                          className={`badge ${m.type === "in" ? "badge-success" : "badge-danger"}`}
+                        >
+                          {m.type === "in"
+                            ? t("common.incoming")
+                            : t("common.outgoing")}
+                        </span>
+                      </td>
+                      <td className="right" style={{ fontWeight: 600 }}>
+                        {m.qty}
+                      </td>
+                      <td className="right muted">{m.stock_before}</td>
+                      <td className="right muted">{m.stock_after}</td>
+                      <td className="muted" style={{ fontSize: ".8rem" }}>
+                        {m.reference_type}
+                        {m.note ? ` (${m.note})` : ""}
+                      </td>
+                      <td className="muted">{m.user?.name || "—"}</td>
+                      <td className="muted" style={{ fontSize: ".8rem" }}>
+                        {formatDate(m.created_at)}
                       </td>
                     </tr>
-                  ) : mutations.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="table-empty">
-                        <ArrowUpDown
-                          style={{
-                            width: "2.5rem",
-                            height: "2.5rem",
-                            margin: "0 auto .75rem",
-                            opacity: 0.3,
-                          }}
-                        />
-                        <p>{t("stockMutations.empty")}</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    mutations.map((m) => (
-                      <tr key={m.id}>
-                        <td style={{ fontWeight: 500 }}>
-                          {m.product?.name || "—"}
-                        </td>
-                        <td className="muted">{m.variant?.name || "—"}</td>
-                        <td className="center">
-                          <span
-                            className={`badge ${m.type === "in" ? "badge-success" : "badge-danger"}`}
-                          >
-                            {m.type === "in"
-                              ? t("common.incoming")
-                              : t("common.outgoing")}
-                          </span>
-                        </td>
-                        <td className="right" style={{ fontWeight: 600 }}>
-                          {m.qty}
-                        </td>
-                        <td className="right muted">{m.stock_before}</td>
-                        <td className="right muted">{m.stock_after}</td>
-                        <td className="muted" style={{ fontSize: ".8rem" }}>
-                          {m.reference_type}
-                          {m.note ? ` (${m.note})` : ""}
-                        </td>
-                        <td className="muted">{m.user?.name || "—"}</td>
-                        <td className="muted" style={{ fontSize: ".8rem" }}>
-                          {formatDate(m.created_at)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
+      </>
     </div>
   );
 }

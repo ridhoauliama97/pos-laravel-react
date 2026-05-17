@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
-import { useCartStore } from "../stores";
+import { useAuthStore, useCartStore } from "../stores";
 import { formatCurrency } from "../lib/utils";
 import toast from "react-hot-toast";
 import {
@@ -16,6 +16,7 @@ import {
   Tag,
   Percent,
 } from "../components/icons";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import type {
   Product,
   Customer,
@@ -33,6 +34,15 @@ interface AppliedPromotion {
   isBundleQty?: boolean;
 }
 
+function getAvailableStock(product: Product): number {
+  if (product.available_stock !== undefined) {
+    return product.available_stock;
+  }
+  const variantStock =
+    product.variants?.reduce((sum, variant) => sum + variant.stock, 0) ?? 0;
+  return variantStock + (product.stock ?? 0);
+}
+
 export default function POSPage() {
   const t = useT();
   const [search, setSearch] = useState("");
@@ -44,17 +54,28 @@ export default function POSPage() {
     total: number;
     change: number;
   } | null>(null);
-  const [showCustomerSelect, setShowCustomerSelect] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [cashError, setCashError] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmCheckout, setConfirmCheckout] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const customerRef = useRef<HTMLInputElement>(null);
   const paymentRef = useRef<HTMLInputElement>(null);
   const methodRef = useRef<HTMLSelectElement>(null);
   const checkoutRef = useRef<HTMLButtonElement>(null);
 
   const cart = useCartStore();
   const clearCart = useCartStore((s) => s.clearCart);
+  const branches = useAuthStore((s) => s.branches);
+  const selectedBranchId = useAuthStore((s) => s.selectedBranchId);
   const queryClient = useQueryClient();
+
+  const activeBranchName = useMemo(() => {
+    const branch = branches.find((b) => b.id === selectedBranchId);
+    return branch?.name ?? "";
+  }, [branches, selectedBranchId]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -65,10 +86,7 @@ export default function POSPage() {
           setShowReceipt(null);
           return;
         }
-        if (showCustomerSelect) {
-          setShowCustomerSelect(false);
-          return;
-        }
+        showCustomerDropdown && setShowCustomerDropdown(false);
       }
       if (e.key === "F1" || (e.key === "f" && (e.ctrlKey || e.metaKey))) {
         e.preventDefault();
@@ -95,12 +113,14 @@ export default function POSPage() {
       }
       if (e.key === "F6") {
         e.preventDefault();
-        setShowCustomerSelect(true);
+        customerRef.current?.focus();
+        setShowCustomerDropdown(true);
       }
       if (e.key === "F7") {
         e.preventDefault();
-        clearCart();
-        toast.success(t("pos.cartCleared"));
+        if (cart.items.length > 0) {
+          setConfirmClear(true);
+        }
       }
       if (e.key === "Enter" && !isInput && showReceipt === null) {
         checkoutRef.current?.click();
@@ -108,9 +128,9 @@ export default function POSPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [showReceipt, showCustomerSelect, queryClient, clearCart, t]);
+  }, [showReceipt, showCustomerDropdown, queryClient, clearCart, t]);
 
-  const { data: productsData } = useQuery({
+  const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ["products-pos", search, categoryId],
     queryFn: () =>
       api.get<Product[]>(
@@ -131,9 +151,9 @@ export default function POSPage() {
   });
 
   const { data: customersData } = useQuery({
-    queryKey: ["customers-search", customerSearch],
+    queryKey: ["customers-search", customerSearchTerm],
     queryFn: () =>
-      api.get<Customer[]>(`/customers?search=${customerSearch}&per_page=10`),
+      api.get<Customer[]>(`/customers?search=${customerSearchTerm}&per_page=50`),
   });
 
   const checkoutMutation = useMutation({
@@ -197,6 +217,11 @@ export default function POSPage() {
 
   const products = productsData?.data || [];
   const categories = categoriesData?.data || [];
+  useEffect(() => {
+    if (categories.length > 0 && categoryId === "") {
+      setCategoryId(String(categories[0].id));
+    }
+  }, [categories, categoryId]);
   const promotions = promotionsData?.data || [];
   const customers = customersData?.data || [];
 
@@ -375,6 +400,22 @@ export default function POSPage() {
       toast.error(t("pos.cartEmpty"));
       return;
     }
+    if (paymentMethod === "cash") {
+      if (!paymentAmount || paymentAmount <= 0) {
+        setCashError(t("pos.cashRequired") || "Nominal tunai wajib diisi");
+        return;
+      }
+      if (paymentAmount < finalTotal) {
+        setCashError(t("pos.cashInsufficient"));
+        return;
+      }
+    }
+    setCashError("");
+    setConfirmCheckout(true);
+  };
+
+  const executeCheckout = () => {
+    setConfirmCheckout(false);
     checkoutMutation.mutate();
   };
 
@@ -395,6 +436,7 @@ export default function POSPage() {
       >
         <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
           <Receipt
+            aria-hidden
             style={{
               width: "3rem",
               height: "3rem",
@@ -435,7 +477,7 @@ export default function POSPage() {
             className="btn btn-primary"
             style={{ flex: 1, justifyContent: "center" }}
           >
-            <Printer className="w-4 h-4" /> Cetak
+              <Printer className="w-4 h-4" /> {t("pos.print")}
           </button>
           <button
             onClick={() => setShowReceipt(null)}
@@ -473,34 +515,25 @@ export default function POSPage() {
           }}
         >
           {/* Search */}
-          <div style={{ marginBottom: ".5rem" }}>
-            <div style={{ position: "relative" }}>
-              <Search
-                style={{
-                  position: "absolute",
-                  left: ".75rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: "1.25rem",
-                  height: "1.25rem",
-                  color: "var(--text-muted)",
-                }}
-              />
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Cari produk (nama / SKU / barcode)..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="form-input"
-                style={{ paddingLeft: "2.5rem", width: "100%" }}
-                autoFocus
-              />
-            </div>
+          <div className="search-wrap pos-search-wrap">
+            <Search className="w-4 h-4" aria-hidden />
+            <input
+              ref={searchRef}
+              type="search"
+              name="pos_search"
+              autoComplete="off"
+              placeholder={t("pos.searchPlaceholder")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="search-input"
+              aria-label={t("pos.searchPlaceholder")}
+            />
           </div>
 
           {/* Category Filter */}
           <div
+            role="tablist"
+            aria-label={t("pos.categoryFilter")}
             style={{
               display: "flex",
               gap: ".375rem",
@@ -510,53 +543,31 @@ export default function POSPage() {
               paddingBottom: ".25rem",
             }}
           >
-            <button
-              onClick={() => setCategoryId("")}
-              style={{
-                padding: ".35rem .75rem",
-                borderRadius: "999px",
-                fontSize: ".75rem",
-                fontWeight: 500,
-                border: "1px solid var(--border)",
-                background:
-                  categoryId === ""
-                    ? "var(--accent)"
-                    : "var(--bg-card)",
-                color:
-                  categoryId === ""
-                    ? "#fff"
-                    : "var(--text-secondary)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: "all .15s",
-                flexShrink: 0,
-              }}
-            >
-              {t("common.all")}
-            </button>
             {categories.map((cat) => (
               <button
                 key={cat.id}
+                role="tab"
+                aria-selected={categoryId === String(cat.id)}
                 onClick={() => setCategoryId(String(cat.id))}
-                style={{
-                  padding: ".35rem .75rem",
-                  borderRadius: "999px",
-                  fontSize: ".75rem",
-                  fontWeight: 500,
-                  border: "1px solid var(--border)",
-                  background:
-                    categoryId === String(cat.id)
-                      ? "var(--accent)"
-                      : "var(--bg-card)",
-                  color:
-                    categoryId === String(cat.id)
-                      ? "#fff"
-                      : "var(--text-secondary)",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  transition: "all .15s",
-                  flexShrink: 0,
-                }}
+                  style={{
+                    padding: ".35rem .75rem",
+                    borderRadius: "999px",
+                    fontSize: ".75rem",
+                    fontWeight: 500,
+                    border: "1px solid var(--border)",
+                    background:
+                      categoryId === String(cat.id)
+                        ? "var(--accent)"
+                        : "var(--bg-card)",
+                    color:
+                      categoryId === String(cat.id)
+                        ? "var(--on-accent)"
+                        : "var(--text-secondary)",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "background .15s, color .15s, border-color .15s",
+                    flexShrink: 0,
+                  }}
               >
                 {cat.name}
               </button>
@@ -610,17 +621,21 @@ export default function POSPage() {
           </div>
 
           {/* Product Grid */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
-              gap: ".875rem",
-              overflow: "auto",
-              flex: 1,
-              alignContent: "start",
-            }}
-          >
-            {products.length === 0 ? (
+          <div className="pos-product-grid">
+            {productsLoading ? (
+              /* Loading Skeleton */
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="pos-product-skeleton" aria-hidden>
+                  <div className="pos-product-skeleton__media skeleton" />
+                  <div className="pos-product-skeleton__body">
+                    <div className="skeleton" style={{ height: '.875rem', width: '80%' }} />
+                    <div className="skeleton" style={{ height: '1rem', width: '50%' }} />
+                    <div className="skeleton" style={{ height: '.6875rem', width: '65%' }} />
+                    <div className="skeleton" style={{ height: '.75rem', width: '40%', marginTop: 'auto' }} />
+                  </div>
+                </div>
+              ))
+            ) : products.length === 0 ? (
               <div
                 style={{
                   gridColumn: "1 / -1",
@@ -633,63 +648,32 @@ export default function POSPage() {
               </div>
             ) : (
               products.map((product) => {
-                const totalStock =
-                  product.variants?.reduce((s, v) => s + v.stock, 0) ?? 0;
+                const totalStock = getAvailableStock(product);
                 const isLow = totalStock > 0 && totalStock <= product.min_stock;
                 const isOut = totalStock === 0;
+                const stockClass = isOut
+                  ? "pos-product-card__stock--out"
+                  : isLow
+                    ? "pos-product-card__stock--low"
+                    : "";
                 return (
                   <button
                     key={product.id}
+                    type="button"
                     onClick={() => !isOut && addToCart(product)}
-                    className="card"
+                    className={`pos-product-card${isOut ? " pos-product-card--disabled" : ""}`}
+                      disabled={isOut}
+                    aria-label={`${product.name || '—'} — ${formatCurrency(product.sell_price ?? 0)}${isOut ? ' (Habis)' : ''}`}
                     style={{
-                      padding: 0,
-                      textAlign: "left",
-                      cursor: isOut ? "not-allowed" : "pointer",
-                      transition: "all .2s ease",
-                      border: isOut
-                        ? "1px solid var(--border)"
-                        : "1px solid var(--border)",
-                      display: "flex",
-                      flexDirection: "column",
-                      minHeight: "0",
-                      overflow: "hidden",
-                      opacity: isOut ? 0.5 : 1,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isOut) {
-                        e.currentTarget.style.borderColor =
-                          "var(--accent)";
-                        e.currentTarget.style.boxShadow =
-                          "0 4px 12px rgba(0,0,0,0.1)";
-                        e.currentTarget.style.transform =
-                          "translateY(-2px)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "var(--border)";
-                      e.currentTarget.style.boxShadow = "none";
-                      e.currentTarget.style.transform = "translateY(0)";
+                      opacity: isOut ? 0.55 : 1,
                     }}
                   >
-                    <div
-                      style={{
-                      width: "100%",
-                      height: "9rem",
-                      background: "var(--bg-secondary)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        overflow: "hidden",
-                        position: "relative",
-                      }}
-                    >
+                    <div className="pos-product-card__media">
                       {product.image ? (
                         <img
                           src={product.image}
-                          alt={product.name}
+                          alt={product.name ?? ""}
+                          loading="lazy"
                           style={{
                             width: "100%",
                             height: "100%",
@@ -706,11 +690,12 @@ export default function POSPage() {
                       ) : (
                         <Package
                           style={{
-                            width: "2.5rem",
-                            height: "2.5rem",
+                            width: "2rem",
+                            height: "2rem",
                             color: "var(--text-muted)",
                             opacity: 0.4,
                           }}
+                          aria-hidden
                         />
                       )}
                       {isLow && !isOut && (
@@ -723,12 +708,12 @@ export default function POSPage() {
                             fontWeight: 700,
                             padding: ".1rem .35rem",
                             borderRadius: "4px",
-                            background: "#f59e0b",
+                            background: "var(--accent-dark, #d97706)",
                             color: "#fff",
                             lineHeight: 1.2,
                           }}
                         >
-                          LOW
+                          {t("pos.stockLow")}
                         </span>
                       )}
                       {isOut && (
@@ -741,57 +726,32 @@ export default function POSPage() {
                             fontWeight: 700,
                             padding: ".1rem .35rem",
                             borderRadius: "4px",
-                            background: "#ef4444",
+                            background: "var(--danger)",
                             color: "#fff",
                             lineHeight: 1.2,
                           }}
                         >
-                          HABIS
+                          {t("pos.stockOut")}
                         </span>
                       )}
                     </div>
-                    <div
-                      style={{
-                        padding: ".625rem .75rem .75rem",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: ".25rem",
-                        flex: 1,
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: ".875rem",
-                          fontWeight: 600,
-                          color: "var(--text-primary)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {product.name}
+                    <div className="pos-product-card__body">
+                      <p className="pos-product-card__name">
+                        {product.name || "—"}
                       </p>
-                      <p
-                        style={{
-                          fontSize: "1rem",
-                          fontWeight: 700,
-                          color: "var(--accent)",
-                          marginTop: ".125rem",
-                        }}
-                      >
-                        {formatCurrency(product.sell_price)}
+                      <p className="pos-product-card__price">
+                        {formatCurrency(product.sell_price ?? 0)}
+                      </p>
+                      <p className={`pos-product-card__stock ${stockClass}`}>
+                        {t("pos.stockAvailable")}
+                        {activeBranchName ? ` (${activeBranchName})` : ""}: {" "}
+                        <strong>
+                          {totalStock}
+                          {product.unit?.name ? ` ${product.unit.name}` : ""}
+                        </strong>
                       </p>
                       {product.category?.name && (
-                        <span
-                          style={{
-                            fontSize: ".625rem",
-                            color: "var(--text-muted)",
-                            marginTop: ".125rem",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                        <span className="pos-product-card__cat">
                           {product.category.name}
                         </span>
                       )}
@@ -807,7 +767,8 @@ export default function POSPage() {
         <div
           className="card pos-cart"
           style={{
-            width: "22rem",
+            width: "min(100%, 22rem)",
+            maxWidth: "22rem",
             display: "flex",
             flexDirection: "column",
             padding: 0,
@@ -831,13 +792,15 @@ export default function POSPage() {
               <h3
                 style={{
                   fontWeight: 600,
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
-                  gap: ".5rem",
+                  gap: ".35rem",
                   color: "var(--text-primary)",
+                  fontSize: "1rem",
+                  lineHeight: 1.5,
                 }}
               >
-                <ShoppingCart className="w-5 h-5" /> {t("pos.cartTitle")}
+                <ShoppingCart style={{ width: "1rem", height: "1rem", flexShrink: 0 }} aria-hidden /> {t("pos.cartTitle")}
               </h3>
               <span
                 style={{ fontSize: ".8125rem", color: "var(--text-muted)" }}
@@ -845,26 +808,77 @@ export default function POSPage() {
                 {cart.itemCount()} item
               </span>
             </div>
-            <button
-              onClick={() => setShowCustomerSelect(true)}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                fontSize: ".8125rem",
-                color: "var(--text-muted)",
-                padding: ".25rem 0",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              {cart.customerId
-                ? t("pos.shortcuts.customer") +
-                  ": " +
-                  (customers.find((c) => c.id === cart.customerId)?.name ??
-                    t("pos.reselectCustomer"))
-                : t("pos.addCustomer")}
-            </button>
+            <div className="search-wrap" style={{ position: "relative" }}>
+              <Search aria-hidden />
+              <input
+                ref={customerRef}
+                type="text"
+                name="customer_search"
+                autoComplete="off"
+                placeholder={t("pos.searchCustomer")}
+                value={customerSearchTerm}
+                onChange={(e) => {
+                  setCustomerSearchTerm(e.target.value);
+                  setShowCustomerDropdown(true);
+                }}
+                onFocus={() => setShowCustomerDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                className="search-input"
+                style={{ fontSize: ".8125rem", background: "var(--bg)" }}
+                aria-label={t("pos.searchCustomer")}
+              />
+              {showCustomerDropdown && customers.length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    zIndex: 50,
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    maxHeight: "12rem",
+                    overflow: "auto",
+                    boxShadow: "var(--shadow-lg)",
+                    marginTop: ".25rem",
+                  }}
+                >
+                  {customers.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        cart.setCustomer(c.id);
+                        setCustomerSearchTerm(c.name);
+                        setShowCustomerDropdown(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: ".5rem .75rem",
+                        background: cart.customerId === c.id ? "var(--accent-light)" : "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: ".8125rem",
+                        color: "var(--text-primary)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                      className="hover-row"
+                    >
+                      <span>{c.name}</span>
+                      {c.phone && (
+                        <span style={{ fontSize: ".6875rem", color: "var(--text-muted)" }}>
+                          {c.phone}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Active Promotions */}
             {appliedPromotions.length > 0 && (
@@ -904,7 +918,7 @@ export default function POSPage() {
                     )}
                     {p.isBundleQty && (
                       <span style={{ fontWeight: 700, flexShrink: 0, fontSize: ".625rem" }}>
-                        +1 GRATIS
+                        {t("pos.bundleFree")}
                       </span>
                     )}
                   </div>
@@ -913,16 +927,7 @@ export default function POSPage() {
             )}
           </div>
 
-          <div
-            style={{
-              flex: 1,
-              overflow: "auto",
-              padding: "1rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: ".5rem",
-            }}
-          >
+          <div className="pos-cart__items">
             {cart.items.length === 0 ? (
               <p
                 style={{
@@ -941,17 +946,7 @@ export default function POSPage() {
                 return (
                   <div
                     key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: ".625rem",
-                      padding: ".5rem",
-                      background: hasPromo
-                        ? "var(--accent-light)"
-                        : "var(--bg-secondary)",
-                      borderRadius: "8px",
-                      position: "relative",
-                    }}
+                    className={`pos-cart-item${hasPromo ? " pos-cart-item--promo" : ""}`}
                   >
                     {hasPromo && (
                       <div
@@ -968,28 +963,12 @@ export default function POSPage() {
                           lineHeight: 1.2,
                         }}
                       >
-                        {bundlePromo ? "B2G1" : "PROMO"}
+                        {bundlePromo ? t("pos.bundleLabel") : t("pos.promoLabel")}
                       </div>
                     )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p
-                        style={{
-                          fontSize: ".8125rem",
-                          fontWeight: 500,
-                          color: "var(--text-primary)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {item.product_name}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: ".75rem",
-                          color: "var(--text-muted)",
-                        }}
-                      >
+                    <div className="pos-cart-item__main">
+                      <p className="pos-cart-item__name">{item.product_name}</p>
+                      <p className="pos-cart-item__meta">
                         {formatCurrency(item.price)}
                         {itemPromo > 0 && (
                           <span
@@ -1010,96 +989,60 @@ export default function POSPage() {
                               marginLeft: ".375rem",
                             }}
                           >
-                            +1 GRATIS
+                            {t("pos.bundleFree")}
                           </span>
                         )}
                       </p>
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: ".125rem",
-                      }}
-                    >
+                    <div className="pos-cart-item__actions">
+                      <div className="pos-cart-item__qty">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            cart.updateQty(i, Math.max(1, item.qty - 1))
+                          }
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span
+                          style={{
+                            minWidth: "1.5rem",
+                            textAlign: "center",
+                            fontSize: ".8125rem",
+                            fontWeight: 600,
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => cart.updateQty(i, item.qty + 1)}
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p className="pos-cart-item__subtotal">
+                        {formatCurrency(item.subtotal - itemPromo * item.qty)}
+                      </p>
                       <button
-                        onClick={() =>
-                          cart.updateQty(i, Math.max(1, item.qty - 1))
-                        }
-                        style={{
-                          padding: ".25rem",
-                          borderRadius: "4px",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "var(--text-secondary)",
-                        }}
+                        type="button"
+                        className="pos-cart-item__remove"
+                        onClick={() => cart.removeItem(i)}
+                        aria-label={t("common.delete")}
                       >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span
-                        style={{
-                          width: "1.5rem",
-                          textAlign: "center",
-                          fontSize: ".8125rem",
-                          fontWeight: 600,
-                          color: "var(--text-primary)",
-                        }}
-                      >
-                        {item.qty}
-                      </span>
-                      <button
-                        onClick={() => cart.updateQty(i, item.qty + 1)}
-                        style={{
-                          padding: ".25rem",
-                          borderRadius: "4px",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        <Plus className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <p
-                      style={{
-                        fontSize: ".8125rem",
-                        fontWeight: 600,
-                        width: "5rem",
-                        textAlign: "right",
-                        color: "var(--text-primary)",
-                      }}
-                    >
-                      {formatCurrency(item.subtotal - itemPromo * item.qty)}
-                    </p>
-                    <button
-                      onClick={() => cart.removeItem(i)}
-                      style={{
-                        padding: ".25rem",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--danger)",
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 );
               })
             )}
           </div>
 
-          <div
-            style={{
-              padding: "1rem",
-              borderTop: "1px solid var(--border)",
-              display: "flex",
-              flexDirection: "column",
-              gap: ".75rem",
-            }}
-          >
+          <div className="pos-cart-footer">
             {/* Original Total */}
             <div
               style={{
@@ -1155,7 +1098,7 @@ export default function POSPage() {
               ref={methodRef}
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="form-input"
+              className="form-select" aria-label={t("pos.paymentMethod")}
             >
               <option value="cash">{t("pos.paymentMethods.cash")}</option>
               <option value="debit">{t("pos.paymentMethods.debit")}</option>
@@ -1163,122 +1106,79 @@ export default function POSPage() {
               <option value="qris">{t("pos.paymentMethods.qris")}</option>
             </select>
             {paymentMethod === "cash" && (
-              <input
-                ref={paymentRef}
-                type="number"
-                placeholder={t("pos.paymentAmount")}
-                value={paymentAmount || ""}
-                onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                className="form-input"
-              />
+              <div className="form-group" style={{ gap: '.25rem' }}>
+                <input
+                  ref={paymentRef}
+                  type="text"
+                  inputMode="decimal"
+                  name="payment_amount"
+                  autoComplete="off"
+                  placeholder={t("pos.paymentAmount")}
+                  value={paymentAmount || ""}
+                  onChange={(e) => {
+                    setPaymentAmount(Number(e.target.value));
+                    setCashError("");
+                  }}
+                  className={`form-input${cashError ? ' form-input--error' : ''}`}
+                  aria-invalid={!!cashError}
+                  aria-describedby={cashError ? 'cash-error' : undefined}
+                />
+                {cashError && (
+                  <p id="cash-error" className="form-error" role="alert">
+                    {cashError}
+                  </p>
+                )}
+              </div>
             )}
             <button
               ref={checkoutRef}
+              type="button"
               onClick={handleCheckout}
               disabled={
                 checkoutMutation.isPending || cart.items.length === 0
               }
-              className="btn btn-primary"
-              style={{
-                width: "100%",
-                justifyContent: "center",
-                padding: ".75rem",
-              }}
+              className="btn btn-primary pos-checkout-btn"
+              aria-live="polite"
+              aria-busy={checkoutMutation.isPending}
             >
-              {checkoutMutation.isPending
-                ? "Memproses..."
-                : `${t("pos.payButton")} ${formatCurrency(finalTotal)}`}
+              {checkoutMutation.isPending ? (
+                <><span className="spinner spinner-sm" aria-hidden />{" "}{t("pos.processing")}</>
+              ) : (
+                `${t("pos.payButton")} ${formatCurrency(finalTotal)}`
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Customer Select Modal */}
-      {showCustomerSelect && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setShowCustomerSelect(false)}
-        >
-          <div
-            className="modal-box"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "28rem" }}
-          >
-            <h3
-              style={{
-                fontWeight: 600,
-                marginBottom: "1rem",
-                color: "var(--text-primary)",
-              }}
-            >
-              {t("pos.selectCustomer")}
-            </h3>
-            <input
-              type="text"
-              placeholder={t("pos.searchCustomer")}
-              value={customerSearch}
-              onChange={(e) => setCustomerSearch(e.target.value)}
-              className="form-input"
-              autoFocus
-              style={{ marginBottom: ".75rem" }}
-            />
-            <div
-              style={{
-                maxHeight: "15rem",
-                overflow: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: ".25rem",
-              }}
-            >
-              {customers.length === 0 ? (
-                <p
-                  style={{
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    padding: "1rem 0",
-                  }}
-                >
-                  {t("pos.noCustomers")}
-                </p>
-              ) : (
-                customers.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      cart.setCustomer(c.id);
-                      setShowCustomerSelect(false);
-                    }}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: ".75rem",
-                      borderRadius: "8px",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "var(--text-primary)",
-                    }}
-                    className="hover-row"
-                  >
-                    <p style={{ fontSize: ".8125rem", fontWeight: 500 }}>
-                      {c.name}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: ".75rem",
-                        color: "var(--text-muted)",
-                      }}
-                    >
-                      {c.phone || "-"}
-                    </p>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirm: Clear Cart */}
+      <ConfirmDialog
+        isOpen={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        onConfirm={() => {
+          setConfirmClear(false);
+          clearCart();
+          toast.success(t("pos.cartCleared"));
+        }}
+        title={t("pos.clearCartTitle")}
+        message={t("pos.clearCartMessage")}
+        confirmLabel={t("pos.clearCartConfirm")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+      />
+
+      {/* Confirm: Checkout */}
+      <ConfirmDialog
+        isOpen={confirmCheckout}
+        onClose={() => setConfirmCheckout(false)}
+        onConfirm={executeCheckout}
+        title={t("pos.checkoutConfirmTitle")}
+        message={`${t("pos.checkoutConfirmMessage")} ${formatCurrency(finalTotal)}?`}
+        confirmLabel={t("pos.payButton")}
+        cancelLabel={t("common.cancel")}
+        variant="primary"
+        loading={checkoutMutation.isPending}
+      />
     </div>
   );
 }

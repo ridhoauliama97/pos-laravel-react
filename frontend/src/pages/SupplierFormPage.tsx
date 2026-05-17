@@ -47,9 +47,7 @@ export default function SupplierFormPage() {
 
   const saveMutation = useMutation({
     mutationFn: (d: typeof form) =>
-      isEdit
-        ? api.put(`/suppliers/${id}`, d)
-        : api.post("/suppliers", d),
+      isEdit ? api.put(`/suppliers/${id}`, d) : api.post("/suppliers", d),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["supplier", id] });
@@ -71,7 +69,10 @@ export default function SupplierFormPage() {
   if (isEdit && isLoadingSupplier) {
     return (
       <div className="page-container">
-        <div className="card card-body" style={{ textAlign: "center", padding: "3rem" }}>
+        <div
+          className="card card-body"
+          style={{ textAlign: "center", padding: "3rem" }}
+        >
           {t("common.loading")}
         </div>
       </div>
@@ -112,12 +113,22 @@ export default function SupplierFormPage() {
       </div>
 
       <form id="supplier-form" onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div
+          className="card"
+          style={{
+            padding: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.25rem",
+          }}
+        >
           {/* Name */}
           <div className="form-group">
             <label className="form-label">{t("suppliers.form.name")} *</label>
             <input
               required
+              name="name"
+              autoComplete="name"
               value={form.name}
               onChange={(e) => handleFieldChange("name", e.target.value)}
               className="form-input"
@@ -130,6 +141,8 @@ export default function SupplierFormPage() {
             <div className="form-group">
               <label className="form-label">{t("suppliers.form.phone")}</label>
               <input
+                name="phone"
+                autoComplete="tel"
                 value={form.phone}
                 onChange={(e) => handleFieldChange("phone", e.target.value)}
                 className="form-input"
@@ -140,6 +153,9 @@ export default function SupplierFormPage() {
               <label className="form-label">{t("suppliers.form.email")}</label>
               <input
                 type="email"
+                name="email"
+                autoComplete="email"
+                spellCheck={false}
                 value={form.email}
                 onChange={(e) => handleFieldChange("email", e.target.value)}
                 className="form-input"
@@ -162,11 +178,17 @@ export default function SupplierFormPage() {
 
           {/* Opening Balance */}
           <div className="form-group">
-            <label className="form-label">{t("suppliers.form.openingBalance")}</label>
+            <label className="form-label">
+              {t("suppliers.form.openingBalance")}
+            </label>
             <input
               type="number"
+              name="opening_balance"
+              autoComplete="off"
               value={form.opening_balance}
-              onChange={(e) => handleFieldChange("opening_balance", Number(e.target.value))}
+              onChange={(e) =>
+                handleFieldChange("opening_balance", Number(e.target.value))
+              }
               className="form-input"
             />
           </div>
@@ -180,17 +202,33 @@ export default function SupplierFormPage() {
               onChange={(e) => handleFieldChange("is_active", e.target.checked)}
               style={{ accentColor: "var(--accent)" }}
             />
-            <label htmlFor="is_active_supplier" style={{ fontSize: ".875rem", color: "var(--text-secondary)" }}>
+            <label
+              htmlFor="is_active_supplier"
+              style={{ fontSize: ".875rem", color: "var(--text-secondary)" }}
+            >
               {t("common.active")}
             </label>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.25rem", display: "flex", justifyContent: "flex-end" }}>
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: "1.25rem",
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
             <button
               type="submit"
               disabled={saveMutation.isPending}
               className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: ".5rem", minWidth: "8rem", justifyContent: "center" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: ".5rem",
+                minWidth: "8rem",
+                justifyContent: "center",
+              }}
             >
               <Save className="w-4 h-4" />
               {saveMutation.isPending ? t("common.saving") : t("common.save")}

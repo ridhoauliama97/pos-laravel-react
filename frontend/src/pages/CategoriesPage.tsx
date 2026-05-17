@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
 import { Plus, Edit, Trash2, Tag, LayoutGrid, List, AlertTriangle } from "../components/icons";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useState } from "react";
 import { useT } from "../i18n";
 import { usePermissions } from "../hooks/usePermissions";
@@ -14,6 +15,7 @@ export default function CategoriesPage() {
   const canManage = hasPermission(PERMISSIONS.CATEGORIES_MANAGE);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const queryClient = useQueryClient();
 
@@ -107,7 +109,7 @@ export default function CategoriesPage() {
                 className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
                 style={viewMode === "list" ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" } : {}}
                 onClick={() => setViewMode("list")}
-                title="List View"
+                title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -116,7 +118,7 @@ export default function CategoriesPage() {
                 className={`btn-icon ${viewMode === "grid" ? "active" : ""}`}
                 style={viewMode === "grid" ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" } : {}}
                 onClick={() => setViewMode("grid")}
-                title="Grid View"
+                title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
@@ -158,11 +160,11 @@ export default function CategoriesPage() {
                           input.indeterminate = selectedIds.length > 0 && selectedIds.length < categories.length;
                         }
                       }}
-                      onChange={(e) => toggleSelectAll(e.target.checked)}
-                      style={{ accentColor: "var(--accent)" }}
-                    />
-                  </th>
-                  <th>{t("categories.form.name")}</th>
+                              onChange={(e) => toggleSelectAll(e.target.checked)}
+                              style={{ accentColor: "var(--accent)" }} aria-label="Select all categories"
+                            />
+                          </th>
+                          <th>{t("categories.form.name")}</th>
                   <th className="center">{t("categories.productCount")}</th>
                   {canManage && <th className="right">{t("common.actions")}</th>}
                 </tr>
@@ -189,7 +191,7 @@ export default function CategoriesPage() {
                           type="checkbox"
                           checked={selectedIds.includes(c.id)}
                           onChange={() => toggleSelect(c.id)}
-                          style={{ accentColor: "var(--accent)" }}
+                          style={{ accentColor: "var(--accent)" }} aria-label={`Select ${c.name}`}
                         />
                       </td>
                       <td>
@@ -210,17 +212,14 @@ export default function CategoriesPage() {
                                 setShowModal(true);
                               }}
                               className="btn-icon edit"
-                              title={t("common.edit")}
+                              title={t("common.edit")} aria-label={t("common.edit")}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm(`${t("categories.deleteConfirm")} "${c.name}"?`))
-                                  deleteMutation.mutate(c.id);
-                              }}
+                              onClick={() => setDeleteConfirmId(c.id)}
                               className="btn-icon danger"
-                              title={t("common.delete")}
+                              title={t("common.delete")} aria-label={t("common.delete")}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -284,7 +283,7 @@ export default function CategoriesPage() {
                     type="checkbox"
                     checked={selectedIds.includes(c.id)}
                     onChange={() => toggleSelect(c.id)}
-                    style={{ accentColor: "var(--accent)", width: "1rem", height: "1rem", cursor: "pointer" }}
+                    style={{ accentColor: "var(--accent)", width: "1rem", height: "1rem", cursor: "pointer" }} aria-label={`Select ${c.name}`}
                   />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
@@ -329,17 +328,14 @@ export default function CategoriesPage() {
                         setShowModal(true);
                       }}
                       className="btn-icon edit"
-                      title={t("common.edit")}
+                      title={t("common.edit")} aria-label={t("common.edit")}
                     >
                       <Edit className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`${t("categories.deleteConfirm")} "${c.name}"?`))
-                          deleteMutation.mutate(c.id);
-                      }}
+                      onClick={() => setDeleteConfirmId(c.id)}
                       className="btn-icon danger"
-                      title={t("common.delete")}
+                      title={t("common.delete")} aria-label={t("common.delete")}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -439,6 +435,8 @@ export default function CategoriesPage() {
             <label className="form-label">{t("categories.form.name")} *</label>
             <input
               required
+              name="name"
+              autoComplete="name"
               placeholder={t("categories.form.namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -447,6 +445,22 @@ export default function CategoriesPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Single Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId !== null) deleteMutation.mutate(deleteConfirmId);
+          setDeleteConfirmId(null);
+        }}
+        title={t("common.delete")}
+        message={`${t("categories.deleteConfirm")} "${categories.find((c: any) => c.id === deleteConfirmId)?.name || ""}"?`}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

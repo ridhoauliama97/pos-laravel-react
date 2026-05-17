@@ -11,8 +11,9 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  ArrowUpRight,
   ArrowRight,
+  CheckCircle,
+  ArrowDown,
 } from "../components/icons";
 import {
   XAxis,
@@ -25,22 +26,20 @@ import {
 } from "recharts";
 import { Link } from "react-router-dom";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomChartTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xl animate-fade-in">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
-          {label}
-        </p>
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{ background: "var(--accent)" }}
-          />
-          <p className="text-lg font-bold text-slate-900 dark:text-white">
-            {formatCurrency(payload[0].value)}
-          </p>
+      <div className="chart-tooltip">
+        <p className="chart-tooltip-label">{label}</p>
+        <div className="chart-tooltip-value">
+          <span className="chart-tooltip-dot" />
+          {formatCurrency(payload[0].value)}
         </div>
+        {payload[0]?.payload?.count && (
+          <p className="chart-tooltip-count">
+            {payload[0].payload.count} transaksi
+          </p>
+        )}
       </div>
     );
   }
@@ -54,53 +53,50 @@ const getInitials = (name?: string) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-const getColorClasses = (color: string) => {
-  switch (color) {
-    case "indigo":
-      return "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400";
-    case "emerald":
-      return "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400";
-    case "amber":
-      return "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400";
-    case "rose":
-      return "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400";
-    default:
-      return "bg-slate-50 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400";
-  }
-};
-
 export default function DashboardPage() {
   const t = useT();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api.get<DashboardSummary>("/dashboard/summary"),
   });
 
+  if (error) {
+    return (
+      <div className="page-container">
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-14 h-14 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-4" style={{ color: "var(--danger)" }}>
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+            Gagal memuat dashboard
+          </h2>
+          <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+            {error instanceof Error ? error.message : "Terjadi kesalahan"}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn btn-primary"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="page-container">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-32 rounded-2xl animate-pulse"
-              style={{ background: "var(--bg-card)" }}
-            />
+            <div key={i} className="skeleton h-[132px] rounded-xl" style={{ animationDelay: `${i * 60}ms` }} />
           ))}
         </div>
-        <div
-          className="h-88 rounded-2xl animate-pulse"
-          style={{ background: "var(--bg-card)" }}
-        />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...Array(2)].map((_, i) => (
-            <div
-              key={i}
-              className="h-80 rounded-2xl animate-pulse"
-              style={{ background: "var(--bg-card)" }}
-            />
-          ))}
+        <div className="skeleton h-[400px] rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="skeleton h-[380px] rounded-xl" />
+          <div className="skeleton h-[380px] rounded-xl" />
         </div>
       </div>
     );
@@ -114,28 +110,24 @@ export default function DashboardPage() {
       value: formatCurrency(s?.today_sales || 0),
       icon: DollarSign,
       change: s?.sales_growth_percent,
-      color: "indigo",
     },
     {
       label: t("common.transactions"),
       value: String(s?.today_transactions || 0),
       icon: ShoppingCart,
       sub: t("dashboard.today"),
-      color: "emerald",
     },
     {
       label: t("dashboard.totalProducts"),
       value: String(s?.total_products || 0),
       icon: Package,
       sub: t("dashboard.allBranches"),
-      color: "amber",
     },
     {
       label: t("dashboard.customers"),
       value: String(s?.total_customers || 0),
       icon: Users,
       sub: t("dashboard.registered"),
-      color: "rose",
     },
   ];
 
@@ -143,51 +135,39 @@ export default function DashboardPage() {
     ? s.sales_chart.map((d) => ({
         date: d.date?.slice(5),
         total: d.total,
+        count: d.count,
       }))
     : [];
 
-  const maxRevenue = s?.top_products?.length
-    ? Math.max(...s.top_products.map((p) => p.total_revenue))
-    : 1;
+  const totalChartRevenue = chartData.reduce((a, d) => a + d.total, 0);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="page-container">
+      {/* ── Header ── */}
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {t("dashboard.title")}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t("dashboard.subtitle")}
-          </p>
+          <h1 className="page-title">{t("dashboard.title")}</h1>
+          <p className="page-subtitle">{t("dashboard.subtitle")}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm backdrop-blur-sm">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">
-              {t("dashboard.thisMonth")}
-            </span>
-            <span className="text-lg font-bold text-slate-900 dark:text-white">
+        <div className="flex items-center gap-3">
+          <div className="month-badge">
+            <span className="month-badge-label">{t("dashboard.thisMonth")}</span>
+            <span className="month-badge-value">
               {formatCurrency(s?.this_month_sales || 0)}
             </span>
           </div>
           {s && s.sales_growth_percent != null && (
-            <div
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl border shadow-sm transition-colors ${
-                s.sales_growth_percent >= 0
-                  ? "bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400"
-                  : "bg-rose-50 border-rose-100 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
-              }`}
-            >
+            <div className={`growth-badge ${s.sales_growth_percent >= 0 ? "growth-badge--up" : "growth-badge--down"}`}>
               {s.sales_growth_percent >= 0 ? (
-                <TrendingUp className="w-4.5 h-4.5" />
+                <TrendingUp className="w-[18px] h-[18px]" />
               ) : (
-                <TrendingDown className="w-4.5 h-4.5" />
+                <TrendingDown className="w-[18px] h-[18px]" />
               )}
-              <span className="font-bold">
+              <span className="growth-badge-value">
+                {s.sales_growth_percent >= 0 ? "+" : ""}
                 {Math.abs(s.sales_growth_percent)}%
               </span>
-              <span className="text-xs opacity-75 hidden sm:inline">
+              <span className="growth-badge-label">
                 {t("dashboard.vsLastMonth")}
               </span>
             </div>
@@ -195,324 +175,225 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {cards.map((card, i) => (
-          <div
-            key={card.label}
-            className="group relative overflow-hidden rounded-2xl p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
-            style={{ animationDelay: `${i * 80}ms` }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {card.label}
-              </span>
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${getColorClasses(card.color)}`}
-              >
-                <card.icon className="w-5 h-5" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-              {card.value}
-            </p>
-            {"change" in card && card.change != null && (
-              <div
-                className={`flex items-center gap-1.5 text-xs font-medium ${card.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
-              >
-                <ArrowUpRight
-                  className={`w-3.5 h-3.5 ${card.change < 0 ? "rotate-90" : ""}`}
-                />
-                <span>
-                  {card.change >= 0 ? "+" : ""}
-                  {card.change}% {t("dashboard.vsLastMonth")}
-                </span>
-              </div>
-            )}
-            {"sub" in card && card.sub && (
-              <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
-                {card.sub}
-              </p>
-            )}
-            {/* Decorative background blur */}
+      {/* ── Stat Cards ── */}
+      <div className="stats-grid">
+        {cards.map((card, i) => {
+          const isUp = "change" in card && card.change != null && card.change >= 0;
+          const isDown = "change" in card && card.change != null && card.change < 0;
+          return (
             <div
-              className={`absolute -bottom-6 -right-6 w-24 h-24 rounded-full blur-2xl opacity-20 transition-opacity duration-300 group-hover:opacity-40 ${getColorClasses(card.color).split(" ")[0]}`}
-            />
-          </div>
-        ))}
+              key={card.label}
+              className="stat-card"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <div className="stat-card-header">
+                <span className="stat-card-label">{card.label}</span>
+                <div className="stat-card-icon">
+                  <card.icon />
+                </div>
+              </div>
+              <p className="stat-card-value">{card.value}</p>
+              <div className="stat-card-footer">
+                {"change" in card && card.change != null && (
+                  <span className={`stat-card-change ${isUp ? "stat-card-change--up" : "stat-card-change--down"}`}>
+                    {isUp && <TrendingUp className="w-[14px] h-[14px]" />}
+                    {isDown && <TrendingDown className="w-[14px] h-[14px]" />}
+                    {card.change >= 0 ? "+" : ""}
+                    {card.change}%
+                  </span>
+                )}
+                {"sub" in card && card.sub && (
+                  <span className="stat-card-sub">{card.sub}</span>
+                )}
+              </div>
+              <div className="stat-card-bar" />
+            </div>
+          );
+        })}
       </div>
 
-      {/* Chart + Stock Alert */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
+      {/* ── Chart + Stock Alerts ── */}
+      <div className="chart-alert-grid">
+        <div className="panel chart-panel">
+          <div className="panel-header">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                {t("dashboard.salesChart")}
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t("dashboard.last14Days")}
-              </p>
+              <h2 className="panel-title">{t("dashboard.salesChart")}</h2>
+              <p className="panel-desc">{t("dashboard.last14Days")}</p>
             </div>
             {chartData.length > 0 && (
-              <div className="text-right">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {t("dashboard.totalPeriod")}
-                </p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">
-                  {formatCurrency(chartData.reduce((a, d) => a + d.total, 0))}
-                </p>
+              <div className="panel-total">
+                <span className="panel-total-label">{t("dashboard.totalPeriod")}</span>
+                <span className="panel-total-value">{formatCurrency(totalChartRevenue)}</span>
               </div>
             )}
           </div>
           {chartData.length > 0 ? (
-            <div className="h-72">
+            <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={chartData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="5%"
-                        stopColor="var(--accent)"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="var(--accent)"
-                        stopOpacity={0}
-                      />
+                      <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
-                    strokeDasharray="4 4"
+                    strokeDasharray="3 3"
                     stroke="var(--border)"
                     vertical={false}
-                    opacity={0.5}
                   />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 12, fill: "var(--text-muted)" }}
+                    tick={{ fontSize: 11, fill: "var(--text-muted)", fontFamily: "Geist Mono, monospace" }}
                     tickLine={false}
                     axisLine={false}
-                    dy={10}
+                    dy={8}
+                    minTickGap={20}
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: "var(--text-muted)" }}
-                    tickFormatter={(v) => (v / 1000).toFixed(0) + "k"}
+                    tick={{ fontSize: 11, fill: "var(--text-muted)", fontFamily: "Geist Mono, monospace" }}
+                    tickFormatter={(v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}jt` : v >= 1000 ? `${(v / 1000).toFixed(0)}rb` : String(v)}
                     tickLine={false}
                     axisLine={false}
-                    dx={-10}
+                    dx={-8}
+                    width={60}
                   />
                   <Tooltip
-                    content={<CustomTooltip />}
-                    cursor={{
-                      stroke: "var(--border)",
-                      strokeWidth: 2,
-                      strokeDasharray: "4 4",
-                    }}
+                    content={<CustomChartTooltip />}
+                    cursor={{ stroke: "var(--border)", strokeWidth: 1.5, strokeDasharray: "4 4" }}
                   />
                   <Area
                     type="monotone"
                     dataKey="total"
                     stroke="var(--accent)"
-                    strokeWidth={3}
+                    strokeWidth={2.5}
                     fill="url(#salesGrad)"
-                    animationDuration={1500}
+                    animationDuration={1200}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-72 text-slate-400 dark:text-slate-500">
-              <TrendingUp className="w-12 h-12 mb-3 opacity-20" />
-              <p className="text-sm font-medium">
-                {t("dashboard.noSalesData")}
-              </p>
+            <div className="panel-empty">
+              <TrendingUp className="w-10 h-10" />
+              <p>{t("dashboard.noSalesData")}</p>
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {t("dashboard.inventoryStatus")}
-            </h2>
-            <Link
-              to="/products"
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-            >
-              <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
-            </Link>
+        <div className="panel alert-panel">
+          <div className="panel-header">
+            <h2 className="panel-title">{t("dashboard.inventoryStatus")}</h2>
           </div>
-
-          <div className="space-y-4 flex-1">
-            <Link to="/products?filter=low_stock" className="block group">
-              <div className="relative overflow-hidden rounded-xl p-5 border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-500/5 transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-800">
-                <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
-                  <AlertTriangle className="w-16 h-16 text-amber-500" />
-                </div>
-                <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-                    </div>
-                    <span className="font-semibold text-amber-900 dark:text-amber-400">
-                      {t("dashboard.lowStock")}
-                    </span>
-                  </div>
-                  <span className="text-3xl font-black text-amber-600 dark:text-amber-500">
-                    {s?.low_stock_count || 0}
-                  </span>
-                </div>
-                <p className="text-xs font-medium text-amber-700/70 dark:text-amber-500/70 mt-2 relative z-10">
-                  {t("dashboard.lowStockDesc")}
-                </p>
+          <div className="alert-list">
+            <Link to="/products?filter=low_stock" className="alert-card alert-card--warning">
+              <div className="alert-card-dot-wrap">
+                <span className="alert-dot alert-dot--amber" />
               </div>
+              <div className="alert-card-body">
+                <div className="alert-card-top">
+                  <span className="alert-card-title">{t("dashboard.lowStock")}</span>
+                  <span className="alert-card-count">{s?.low_stock_count || 0}</span>
+                </div>
+                <p className="alert-card-desc">{t("dashboard.lowStockDesc")}</p>
+              </div>
+              <ArrowRight className="alert-card-arrow" />
             </Link>
 
-            <Link to="/products?filter=out_of_stock" className="block group">
-              <div className="relative overflow-hidden rounded-xl p-5 border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-500/5 transition-all hover:shadow-md hover:border-rose-300 dark:hover:border-rose-800">
-                <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
-                  <AlertTriangle className="w-16 h-16 text-rose-500" />
-                </div>
-                <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex h-3 w-3">
-                      {s?.out_of_stock_count && s.out_of_stock_count > 0 && (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                      )}
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-                    </div>
-                    <span className="font-semibold text-rose-900 dark:text-rose-400">
-                      {t("dashboard.outOfStock")}
-                    </span>
-                  </div>
-                  <span className="text-3xl font-black text-rose-600 dark:text-rose-500">
-                    {s?.out_of_stock_count || 0}
-                  </span>
-                </div>
-                <p className="text-xs font-medium text-rose-700/70 dark:text-rose-500/70 mt-2 relative z-10">
-                  {t("dashboard.outOfStockDesc")}
-                </p>
+            <Link to="/products?filter=out_of_stock" className="alert-card alert-card--danger">
+              <div className="alert-card-dot-wrap">
+                <span className="alert-dot alert-dot--red" />
               </div>
+              <div className="alert-card-body">
+                <div className="alert-card-top">
+                  <span className="alert-card-title">{t("dashboard.outOfStock")}</span>
+                  <span className="alert-card-count">{s?.out_of_stock_count || 0}</span>
+                </div>
+                <p className="alert-card-desc">{t("dashboard.outOfStockDesc")}</p>
+              </div>
+              <ArrowRight className="alert-card-arrow" />
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Bottom rows */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="rounded-2xl p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {t("dashboard.topProducts")}
-            </h2>
-            <span className="text-xs font-semibold px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">
-              {t("dashboard.top5")}
-            </span>
+      {/* ── Bottom Row ── */}
+      <div className="bottom-grid">
+        {/* Top Products */}
+        <div className="panel">
+          <div className="panel-header">
+            <h2 className="panel-title">{t("dashboard.topProducts")}</h2>
+            <span className="panel-badge">{t("dashboard.top5")}</span>
           </div>
-
           {s?.top_products && s.top_products.length > 0 ? (
-            <div className="space-y-5">
+            <div className="top-products-list">
               {s.top_products.map((p, i) => {
-                const percentage = Math.max(
-                  5,
-                  (p.total_revenue / maxRevenue) * 100,
-                );
+                const maxRevenue = s.top_products.reduce((max, prod) => Math.max(max, prod.total_revenue), 1);
+                const pct = Math.max(4, (p.total_revenue / maxRevenue) * 100);
+                const colors = ["var(--accent)", "#f59e0b", "#10b981", "#8b5cf6", "#ec4899"];
                 return (
-                  <div key={i} className="group">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 group-hover:bg-(--accent) group-hover:text-white transition-colors">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm font-semibold truncate text-slate-900 dark:text-white">
-                          {p.product_name}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end shrink-0 ml-4">
-                        <span className="font-bold text-slate-900 dark:text-white">
-                          {formatCurrency(p.total_revenue)}
-                        </span>
-                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                          {p.total_qty} {t("dashboard.sold")}
-                        </span>
-                      </div>
+                  <div key={i} className="top-product-item" style={{ animationDelay: `${i * 60}ms` }}>
+                    <div className="top-product-rank" style={{ "--rank-color": colors[i] } as React.CSSProperties}>
+                      {i + 1}
                     </div>
-                    {/* Progress Bar */}
-                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000 ease-out"
-                        style={{
-                          width: `${percentage}%`,
-                          background: "var(--accent)",
-                        }}
-                      />
+                    <div className="top-product-info">
+                      <div className="top-product-row">
+                        <span className="top-product-name">{p.product_name}</span>
+                        <span className="top-product-revenue">{formatCurrency(p.total_revenue)}</span>
+                      </div>
+                      <div className="top-product-bar-track">
+                        <div
+                          className="top-product-bar-fill"
+                          style={{ width: `${pct}%`, background: colors[i] }}
+                        />
+                      </div>
+                      <span className="top-product-qty">{p.total_qty} {t("dashboard.sold")}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
-              <Package className="w-10 h-10 mb-3 opacity-20" />
-              <p className="text-sm font-medium">{t("dashboard.noSales")}</p>
+            <div className="panel-empty">
+              <Package className="w-10 h-10" />
+              <p>{t("dashboard.noSales")}</p>
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {t("dashboard.recentTransactions")}
-            </h2>
-            <Link
-              to="/transactions"
-              className="text-sm font-semibold text-(--accent) hover:opacity-80 transition-opacity"
-            >
+        {/* Recent Transactions */}
+        <div className="panel">
+          <div className="panel-header">
+            <h2 className="panel-title">{t("dashboard.recentTransactions")}</h2>
+            <Link to="/pos/history" className="panel-link">
               {t("dashboard.viewAll")}
             </Link>
           </div>
-
           {s?.recent_transactions && s.recent_transactions.length > 0 ? (
-            <div className="space-y-3">
+            <div className="tx-list">
               {s.recent_transactions.slice(0, 5).map((trx) => (
                 <Link
-                  to={`/transactions/${trx.id}`}
+                  to={`/pos/history?id=${trx.id}`}
                   key={trx.id}
-                  className="flex items-center justify-between p-3 -mx-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                  className="tx-item"
                 >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 shrink-0 group-hover:scale-105 transition-transform">
-                      {getInitials(trx.user?.name)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                        {trx.invoice_no}
-                      </p>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                        {t("dashboard.cashierLabel")}{" "}
-                        {trx.user?.name || "Unknown"}
-                      </p>
-                    </div>
+                  <div className="tx-avatar">
+                    {getInitials(trx.user?.name)}
                   </div>
-                  <div className="flex flex-col items-end shrink-0 pl-4">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-                      {formatCurrency(trx.grand_total)}
-                    </p>
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                        trx.status === "completed"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
-                          : trx.status === "void"
-                            ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
-                      }`}
-                    >
+                  <div className="tx-info">
+                    <span className="tx-invoice">{trx.invoice_no}</span>
+                    <span className="tx-cashier">
+                      {trx.user?.name || "Unknown"}
+                    </span>
+                  </div>
+                  <div className="tx-right">
+                    <span className="tx-amount">{formatCurrency(trx.grand_total)}</span>
+                    <span className={`tx-status tx-status--${trx.status}`}>
+                      {trx.status === "completed" && <CheckCircle className="w-3 h-3" />}
+                      {trx.status === "void" && <ArrowDown className="w-3 h-3" />}
                       {trx.status}
                     </span>
                   </div>
@@ -520,11 +401,9 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
-              <ShoppingCart className="w-10 h-10 mb-3 opacity-20" />
-              <p className="text-sm font-medium">
-                {t("dashboard.noTransactions")}
-              </p>
+            <div className="panel-empty">
+              <ShoppingCart className="w-10 h-10" />
+              <p>{t("dashboard.noTransactions")}</p>
             </div>
           )}
         </div>

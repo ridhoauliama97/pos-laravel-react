@@ -70,6 +70,8 @@ export default function UserMenu() {
         }}
         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-(--bg-hover)"
         style={{ color: "var(--text-primary)" }}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         {user?.avatar ? (
           <img
@@ -123,6 +125,8 @@ export default function UserMenu() {
               <button
                 key={tabName}
                 onClick={() => setTab(tabName)}
+                role="tab"
+                aria-selected={tab === tabName}
                 className="flex-1 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-(--bg-hover)"
                 style={{
                   color:

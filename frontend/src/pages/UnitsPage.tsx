@@ -12,7 +12,9 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 export default function UnitsPage() {
   const t = useT();
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission(PERMISSIONS.UNITS_MANAGE) || hasPermission(PERMISSIONS.PRODUCTS_EDIT);
+  const canManage =
+    hasPermission(PERMISSIONS.UNITS_MANAGE) ||
+    hasPermission(PERMISSIONS.PRODUCTS_EDIT);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
@@ -39,9 +41,7 @@ export default function UnitsPage() {
       setEditingId(null);
       setName("");
       setShort("");
-      toast.success(
-        editingId ? t("units.updated") : t("units.created"),
-      );
+      toast.success(editingId ? t("units.updated") : t("units.created"));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -105,14 +105,32 @@ export default function UnitsPage() {
               ) : isError ? (
                 <tr>
                   <td colSpan={canManage ? 3 : 2} className="table-empty">
-                    <AlertTriangle style={{ width: "2.5rem", height: "2.5rem", margin: "0 auto .75rem", opacity: 0.3 }} />
-                    <p>{error instanceof Error ? error.message : t("common.error")}</p>
+                    <AlertTriangle
+                      style={{
+                        width: "2.5rem",
+                        height: "2.5rem",
+                        margin: "0 auto .75rem",
+                        opacity: 0.3,
+                      }}
+                    />
+                    <p>
+                      {error instanceof Error
+                        ? error.message
+                        : t("common.error")}
+                    </p>
                   </td>
                 </tr>
               ) : units.length === 0 ? (
                 <tr>
                   <td colSpan={canManage ? 3 : 2} className="table-empty">
-                    <Ruler style={{ width: "2.5rem", height: "2.5rem", margin: "0 auto .75rem", opacity: 0.3 }} />
+                    <Ruler
+                      style={{
+                        width: "2.5rem",
+                        height: "2.5rem",
+                        margin: "0 auto .75rem",
+                        opacity: 0.3,
+                      }}
+                    />
                     <p>{t("units.empty")}</p>
                   </td>
                 </tr>
@@ -120,7 +138,14 @@ export default function UnitsPage() {
                 units.map((unit: any) => (
                   <tr key={unit.id}>
                     <td>
-                      <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>{unit.name}</div>
+                      <div
+                        style={{
+                          fontWeight: 500,
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        {unit.name}
+                      </div>
                     </td>
                     <td>
                       {unit.short && (
@@ -129,18 +154,24 @@ export default function UnitsPage() {
                     </td>
                     {canManage && (
                       <td className="right">
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: ".25rem" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: ".25rem",
+                          }}
+                        >
                           <button
                             onClick={() => openEdit(unit)}
                             className="btn-icon edit"
-                            title={t("common.edit")}
+                            title={t("common.edit")} aria-label={t("common.edit")}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(unit.id)}
                             className="btn-icon danger"
-                            title={t("common.delete")}
+                            title={t("common.delete")} aria-label={t("common.delete")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -192,6 +223,8 @@ export default function UnitsPage() {
             <label className="form-label">{t("units.form.name")} *</label>
             <input
               required
+              name="name"
+              autoComplete="name"
               placeholder={t("units.form.namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -201,6 +234,8 @@ export default function UnitsPage() {
           <div className="form-group">
             <label className="form-label">{t("units.form.short")}</label>
             <input
+              name="short"
+              autoComplete="off"
               placeholder={t("units.form.shortPlaceholder")}
               value={short}
               onChange={(e) => setShort(e.target.value)}

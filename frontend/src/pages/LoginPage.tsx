@@ -9,12 +9,34 @@ export default function LoginPage() {
   const [email, setEmail] = useState("admin@pos.test");
   const [password, setPassword] = useState("password");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
 
+  const validate = (): boolean => {
+    const errs: { email?: string; password?: string } = {};
+    if (!email.trim()) {
+      errs.email = t("login.emailRequired") || "Email wajib diisi";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errs.email = t("login.emailInvalid") || "Format email tidak valid";
+    }
+    if (!password) {
+      errs.password = t("login.passwordRequired") || "Password wajib diisi";
+    } else if (password.length < 6) {
+      errs.password =
+        t("login.passwordMinLength") || "Password minimal 6 karakter";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
+    setErrors({});
     try {
       await login(email, password);
       toast.success(t("login.success"));
@@ -39,6 +61,7 @@ export default function LoginPage() {
       }}
     >
       <div
+        className="animate-fade-in"
         style={{
           width: "100%",
           maxWidth: "24rem",
@@ -73,28 +96,58 @@ export default function LoginPage() {
         <form
           onSubmit={handleSubmit}
           style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          noValidate
         >
           <div className="form-group">
-            <label className="form-label">{t("login.email")}</label>
+            <label className="form-label" htmlFor="login-email">
+              {t("login.email")}
+            </label>
             <input
+              id="login-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="form-input"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
+              }}
+              className={`form-input${errors.email ? " form-input--error" : ""}`}
               placeholder={t("login.emailPlaceholder")}
-              required
+              autoComplete="email"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "login-email-error" : undefined}
             />
+            {errors.email && (
+              <p className="form-error" id="login-email-error" role="alert">
+                {errors.email}
+              </p>
+            )}
           </div>
           <div className="form-group">
-            <label className="form-label">{t("login.password")}</label>
+            <label className="form-label" htmlFor="login-password">
+              {t("login.password")}
+            </label>
             <input
+              id="login-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-input"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password)
+                  setErrors((p) => ({ ...p, password: undefined }));
+              }}
+              className={`form-input${errors.password ? " form-input--error" : ""}`}
               placeholder={t("login.passwordPlaceholder")}
-              required
+              autoComplete="current-password"
+              aria-invalid={!!errors.password}
+              aria-describedby={
+                errors.password ? "login-password-error" : undefined
+              }
             />
+            {errors.password && (
+              <p className="form-error" id="login-password-error" role="alert">
+                {errors.password}
+              </p>
+            )}
           </div>
           <button
             type="submit"
@@ -104,8 +157,10 @@ export default function LoginPage() {
               width: "100%",
               justifyContent: "center",
               padding: ".75rem",
+              gap: ".5rem",
             }}
           >
+            {loading && <span className="spinner spinner-sm" aria-hidden />}
             {loading ? t("login.loggingIn") : t("login.loginButton")}
           </button>
         </form>

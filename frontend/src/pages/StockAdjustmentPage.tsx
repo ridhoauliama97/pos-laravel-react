@@ -52,86 +52,90 @@ export default function StockAdjustmentPage() {
       </div>
 
       <div className="table-card">
-        <table>
-          <thead>
-            <tr>
-              <th>{t("stockMutations.table.product")}</th>
-              <th className="center">{t("stockMutations.table.type")}</th>
-              <th className="right">{t("stockMutations.table.qty")}</th>
-              <th className="right">{t("stockMutations.table.stockBefore")}</th>
-              <th className="right">{t("stockMutations.table.stockAfter")}</th>
-              <th>{t("stockMutations.table.notes")}</th>
-              <th className="center">{t("stockMutations.table.toBranch")}</th>
-              <th>{t("stockMutations.table.user")}</th>
-              <th>{t("stockMutations.table.date")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
+        <div className="overflow-x-auto">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={9} className="table-empty">
-                  {t("stockMutations.loading")}
-                </td>
+                <th>{t("stockMutations.table.product")}</th>
+                <th className="center">{t("stockMutations.table.type")}</th>
+                <th className="right">{t("stockMutations.table.qty")}</th>
+                <th className="right">{t("stockMutations.table.stockBefore")}</th>
+                <th className="right">{t("stockMutations.table.stockAfter")}</th>
+                <th>{t("stockMutations.table.notes")}</th>
+                <th className="center">{t("stockMutations.table.toBranch")}</th>
+                <th>{t("stockMutations.table.user")}</th>
+                <th>{t("stockMutations.table.date")}</th>
               </tr>
-            ) : adjustments.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="table-empty">
-                  <ArrowUpDown
-                    style={{
-                      width: "2.5rem",
-                      height: "2.5rem",
-                      margin: "0 auto .75rem",
-                      opacity: 0.3,
-                    }}
-                  />
-                  <p>{t("stockMutations.empty")}</p>
-                </td>
-              </tr>
-            ) : (
-              adjustments.map((a) => (
-                <tr key={a.id}>
-                  <td style={{ fontWeight: 500 }}>{a.product?.name || "—"}</td>
-                  <td className="center">
-                    <span
-                      className={`badge ${a.type === "in" ? "badge-success" : "badge-danger"}`}
-                    >
-                      {a.type === "in"
-                        ? t("common.incoming")
-                        : t("common.outgoing")}
-                    </span>
-                  </td>
-                  <td className="right" style={{ fontWeight: 600 }}>
-                    {a.qty}
-                  </td>
-                  <td className="right muted">{a.stock_before}</td>
-                  <td className="right muted">{a.stock_after}</td>
-                  <td
-                    className="muted"
-                    style={{
-                      maxWidth: "200px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {a.note || "—"}
-                  </td>
-                  <td className="center">
-                    {a.to_branch ? (
-                      <span className="badge badge-info">{a.to_branch.name}</span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="muted">{a.user?.name || "—"}</td>
-                  <td className="muted" style={{ fontSize: ".8rem" }}>
-                    {formatDate(a.created_at)}
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="table-empty">
+                    {t("stockMutations.loading")}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : adjustments.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="table-empty">
+                    <ArrowUpDown
+                      style={{
+                        width: "2.5rem",
+                        height: "2.5rem",
+                        margin: "0 auto .75rem",
+                        opacity: 0.3,
+                      }}
+                    />
+                    <p>{t("stockMutations.empty")}</p>
+                  </td>
+                </tr>
+              ) : (
+                adjustments.map((a) => (
+                  <tr key={a.id}>
+                    <td style={{ fontWeight: 500 }}>{a.product?.name || "—"}</td>
+                    <td className="center">
+                      <span
+                        className={`badge ${a.type === "in" ? "badge-success" : "badge-danger"}`}
+                      >
+                        {a.type === "in"
+                          ? t("common.incoming")
+                          : t("common.outgoing")}
+                      </span>
+                    </td>
+                    <td className="right" style={{ fontWeight: 600 }}>
+                      {a.qty}
+                    </td>
+                    <td className="right muted">{a.stock_before}</td>
+                    <td className="right muted">{a.stock_after}</td>
+                    <td
+                      className="muted"
+                      style={{
+                        maxWidth: "200px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {a.note || "—"}
+                    </td>
+                    <td className="center">
+                      {a.to_branch ? (
+                        <span className="badge badge-info">
+                          {a.to_branch.name}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="muted">{a.user?.name || "—"}</td>
+                    <td className="muted" style={{ fontSize: ".8rem" }}>
+                      {formatDate(a.created_at)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

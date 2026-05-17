@@ -51,8 +51,7 @@ export default function CustomersPage() {
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["customers", search, page, statusFilter, memberFilter],
-    queryFn: () =>
-      api.get<Customer[]>(`/customers?${params}`),
+    queryFn: () => api.get<Customer[]>(`/customers?${params}`),
   });
 
   const { data: statsData } = useQuery({
@@ -92,7 +91,7 @@ export default function CustomersPage() {
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -159,7 +158,9 @@ export default function CustomersPage() {
             <Activity className="w-5 h-5" style={{ color: "#3b82f6" }} />
             <div>
               <p className="stat-value">{stats.has_transactions}</p>
-              <p className="stat-label">{t("customers.stats.hasTransactions")}</p>
+              <p className="stat-label">
+                {t("customers.stats.hasTransactions")}
+              </p>
             </div>
           </div>
         </div>
@@ -176,10 +177,7 @@ export default function CustomersPage() {
           flexWrap: "wrap",
         }}
       >
-        <div
-          className="search-wrap"
-          style={{ maxWidth: "22rem", flexGrow: 1 }}
-        >
+        <div className="search-wrap" style={{ maxWidth: "22rem", flexGrow: 1 }}>
           <Search className="w-4 h-4" />
           <input
             type="text"
@@ -189,16 +187,23 @@ export default function CustomersPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="search-input"
+            className="search-input" aria-label={t("customers.searchPlaceholder")}
           />
         </div>
 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <select
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="form-input"
-            style={{ width: "auto", padding: "0.375rem 1.5rem 0.375rem 0.5rem" }}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="form-select"
+            style={{
+              width: "auto",
+              fontSize: ".8125rem",
+              padding: "0.375rem 1.5rem 0.375rem 0.5rem",
+            }} aria-label={t("customers.filters.all")}
           >
             <option value="">{t("customers.filters.all")}</option>
             <option value="1">{t("customers.filters.active")}</option>
@@ -207,25 +212,33 @@ export default function CustomersPage() {
 
           <select
             value={memberFilter}
-            onChange={(e) => { setMemberFilter(e.target.value); setPage(1); }}
-            className="form-input"
-            style={{ width: "auto", padding: "0.375rem 1.5rem 0.375rem 0.5rem" }}
+            onChange={(e) => {
+              setMemberFilter(e.target.value);
+              setPage(1);
+            }}
+            className="form-select"
+            style={{
+              width: "auto",
+              fontSize: ".8125rem",
+              padding: "0.375rem 1.5rem 0.375rem 0.5rem",
+            }} aria-label={t("customers.filters.all")}
           >
             <option value="">{t("customers.filters.all")}</option>
             <option value="1">{t("customers.filters.member")}</option>
             <option value="0">{t("customers.filters.nonMember")}</option>
           </select>
 
-          {selectedIds.length > 0 && hasPermission(PERMISSIONS.CUSTOMERS_DELETE) && (
-            <button
-              onClick={() => setShowBulkDeleteModal(true)}
-              className="btn btn-danger"
-              style={{ padding: "0.5rem 1rem" }}
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete Selected ({selectedIds.length})
-            </button>
-          )}
+          {selectedIds.length > 0 &&
+            hasPermission(PERMISSIONS.CUSTOMERS_DELETE) && (
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="btn btn-danger"
+                style={{ padding: "0.5rem 1rem" }}
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Selected ({selectedIds.length})
+              </button>
+            )}
 
           <div
             className="view-toggle"
@@ -245,7 +258,7 @@ export default function CustomersPage() {
                   viewMode === "list" ? "var(--bg-card)" : "transparent",
                 boxShadow: viewMode === "list" ? "var(--shadow-sm)" : "none",
               }}
-              title="List View"
+              title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
             >
               <List className="w-4 h-4" />
             </button>
@@ -257,7 +270,7 @@ export default function CustomersPage() {
                   viewMode === "grid" ? "var(--bg-card)" : "transparent",
                 boxShadow: viewMode === "grid" ? "var(--shadow-sm)" : "none",
               }}
-              title="Grid View"
+              title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -286,7 +299,7 @@ export default function CustomersPage() {
                         }
                       }}
                       onChange={toggleSelectAll}
-                      className="form-checkbox"
+                      className="form-checkbox" aria-label="Select all customers"
                     />
                   </th>
                   <th>{t("customers.table.customer")}</th>
@@ -327,14 +340,16 @@ export default function CustomersPage() {
                   customers.map((c) => (
                     <tr
                       key={c.id}
-                      className={selectedIds.includes(c.id) ? "selected-row" : ""}
+                      className={
+                        selectedIds.includes(c.id) ? "selected-row" : ""
+                      }
                     >
                       <td style={{ textAlign: "center" }}>
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(c.id)}
                           onChange={() => toggleSelect(c.id)}
-                          className="form-checkbox"
+                          className="form-checkbox" aria-label={`Select ${c.name}`}
                         />
                       </td>
                       <td>
@@ -350,8 +365,12 @@ export default function CustomersPage() {
                               width: "2rem",
                               height: "2rem",
                               borderRadius: "50%",
-                              background: c.is_active ? "var(--accent-light)" : "var(--bg)",
-                              color: c.is_active ? "var(--accent)" : "var(--text-muted)",
+                              background: c.is_active
+                                ? "var(--accent-light)"
+                                : "var(--bg)",
+                              color: c.is_active
+                                ? "var(--accent)"
+                                : "var(--text-muted)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -362,7 +381,14 @@ export default function CustomersPage() {
                           >
                             {c.name.charAt(0).toUpperCase()}
                           </div>
-                          <span style={{ fontWeight: 500, color: c.is_active ? undefined : "var(--text-muted)" }}>
+                          <span
+                            style={{
+                              fontWeight: 500,
+                              color: c.is_active
+                                ? undefined
+                                : "var(--text-muted)",
+                            }}
+                          >
                             {c.name}
                           </span>
                         </div>
@@ -370,13 +396,21 @@ export default function CustomersPage() {
                       <td className="muted">{c.phone || "—"}</td>
                       <td className="muted">{c.email || "—"}</td>
                       <td>
-                        <span className={`badge ${c.is_active ? "badge-success" : "badge-danger"}`}>
-                          {c.is_active ? t("customers.badge.active") : t("customers.badge.inactive")}
+                        <span
+                          className={`badge ${c.is_active ? "badge-success" : "badge-danger"}`}
+                        >
+                          {c.is_active
+                            ? t("customers.badge.active")
+                            : t("customers.badge.inactive")}
                         </span>
                       </td>
                       <td>
-                        <span className={`badge ${c.is_member ? "badge-info" : "badge-gray"}`}>
-                          {c.is_member ? t("customers.badge.member") : t("customers.badge.regular")}
+                        <span
+                          className={`badge ${c.is_member ? "badge-info" : "badge-gray"}`}
+                        >
+                          {c.is_member
+                            ? t("customers.badge.member")
+                            : t("customers.badge.regular")}
                         </span>
                       </td>
                       <td className="center">
@@ -400,9 +434,11 @@ export default function CustomersPage() {
                         >
                           {hasPermission(PERMISSIONS.CUSTOMERS_EDIT) && (
                             <button
-                              onClick={() => navigate(`/customers/${c.id}/edit`)}
+                              onClick={() =>
+                                navigate(`/customers/${c.id}/edit`)
+                              }
                               className="btn-icon edit"
-                              title={t("common.edit")}
+                              title={t("common.edit")} aria-label={t("common.edit")}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -415,7 +451,7 @@ export default function CustomersPage() {
                                 setSelectedIds([c.id]);
                               }}
                               className="btn-icon danger"
-                              title={t("common.delete")}
+                              title={t("common.delete")} aria-label={t("common.delete")}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -441,13 +477,14 @@ export default function CustomersPage() {
         >
           {isLoading ? (
             Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="skeleton" style={{ height: "220px", borderRadius: "var(--radius)" }} />
+              <div
+                key={i}
+                className="skeleton"
+                style={{ height: "220px", borderRadius: "var(--radius)" }}
+              />
             ))
           ) : customers.length === 0 ? (
-            <div
-              className="table-empty"
-              style={{ gridColumn: "1 / -1" }}
-            >
+            <div className="table-empty" style={{ gridColumn: "1 / -1" }}>
               <Users
                 style={{
                   width: "3rem",
@@ -458,7 +495,9 @@ export default function CustomersPage() {
               />
               <p style={{ fontSize: "1rem", fontWeight: 500 }}>
                 {t("customers.empty")}
-                {search && <span style={{ color: "var(--accent)" }}> "{search}"</span>}
+                {search && (
+                  <span style={{ color: "var(--accent)" }}> "{search}"</span>
+                )}
               </p>
             </div>
           ) : (
@@ -474,8 +513,12 @@ export default function CustomersPage() {
                   position: "relative",
                   transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                   cursor: "default",
-                  border: selectedIds.includes(c.id) ? "1px solid var(--accent)" : "1px solid var(--border)",
-                  boxShadow: selectedIds.includes(c.id) ? "0 0 0 1px var(--accent), var(--shadow-md)" : "var(--shadow-sm)",
+                  border: selectedIds.includes(c.id)
+                    ? "1px solid var(--accent)"
+                    : "1px solid var(--border)",
+                  boxShadow: selectedIds.includes(c.id)
+                    ? "0 0 0 1px var(--accent), var(--shadow-md)"
+                    : "var(--shadow-sm)",
                   opacity: c.is_active ? 1 : 0.6,
                 }}
                 onClick={() => toggleSelect(c.id)}
@@ -493,7 +536,7 @@ export default function CustomersPage() {
                     checked={selectedIds.includes(c.id)}
                     onChange={() => toggleSelect(c.id)}
                     className="form-checkbox"
-                    style={{ width: "1.25rem", height: "1.25rem" }}
+                    style={{ width: "1.25rem", height: "1.25rem" }} aria-label={`Select ${c.name}`}
                   />
                 </div>
                 <div
@@ -508,8 +551,12 @@ export default function CustomersPage() {
                       width: "3rem",
                       height: "3rem",
                       borderRadius: "50%",
-                      background: c.is_active ? "var(--accent-light)" : "var(--bg)",
-                      color: c.is_active ? "var(--accent)" : "var(--text-muted)",
+                      background: c.is_active
+                        ? "var(--accent-light)"
+                        : "var(--bg)",
+                      color: c.is_active
+                        ? "var(--accent)"
+                        : "var(--text-muted)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -524,12 +571,27 @@ export default function CustomersPage() {
                     <h3 style={{ fontWeight: 600, fontSize: "1.125rem" }}>
                       {c.name}
                     </h3>
-                    <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.25rem", flexWrap: "wrap" }}>
-                      <span className={`badge ${c.is_active ? "badge-success" : "badge-danger"}`}>
-                        {c.is_active ? t("customers.badge.active") : t("customers.badge.inactive")}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.375rem",
+                        marginTop: "0.25rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        className={`badge ${c.is_active ? "badge-success" : "badge-danger"}`}
+                      >
+                        {c.is_active
+                          ? t("customers.badge.active")
+                          : t("customers.badge.inactive")}
                       </span>
-                      <span className={`badge ${c.is_member ? "badge-info" : "badge-gray"}`}>
-                        {c.is_member ? t("customers.badge.member") : t("customers.badge.regular")}
+                      <span
+                        className={`badge ${c.is_member ? "badge-info" : "badge-gray"}`}
+                      >
+                        {c.is_member
+                          ? t("customers.badge.member")
+                          : t("customers.badge.regular")}
                       </span>
                       <span
                         className={`badge ${TIER_STYLE[c.member_tier] ?? "badge-gray"}`}
@@ -550,16 +612,43 @@ export default function CustomersPage() {
                   }}
                 >
                   <div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Phone</div>
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      Phone
+                    </div>
                     <div>{c.phone || "—"}</div>
                   </div>
                   <div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Email</div>
-                    <div style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{c.email || "—"}</div>
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      Email
+                    </div>
+                    <div
+                      style={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                    >
+                      {c.email || "—"}
+                    </div>
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Points</div>
-                    <div style={{ fontWeight: 600 }}>{c.points?.toLocaleString("id")}</div>
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      Points
+                    </div>
+                    <div style={{ fontWeight: 600 }}>
+                      {c.points?.toLocaleString("id")}
+                    </div>
                   </div>
                 </div>
 
@@ -577,7 +666,7 @@ export default function CustomersPage() {
                     <button
                       onClick={() => navigate(`/customers/${c.id}/edit`)}
                       className="btn-icon edit"
-                      title={t("common.edit")}
+                      title={t("common.edit")} aria-label={t("common.edit")}
                     >
                       <Edit className="w-4 h-4" />
                     </button>
@@ -590,7 +679,7 @@ export default function CustomersPage() {
                         setSelectedIds([c.id]);
                       }}
                       className="btn-icon danger"
-                      title={t("common.delete")}
+                      title={t("common.delete")} aria-label={t("common.delete")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -602,58 +691,56 @@ export default function CustomersPage() {
         </div>
       )}
 
-        {meta && meta.last_page > 1 && (
-          <div className="table-pagination">
-            <span className="page-text">
-              {(meta.current_page - 1) * meta.per_page + 1}–
-              {Math.min(meta.current_page * meta.per_page, meta.total)} dari{" "}
-              {meta.total}
-            </span>
-            <div
-              style={{ display: "flex", alignItems: "center", gap: ".25rem" }}
+      {meta && meta.last_page > 1 && (
+        <div className="table-pagination">
+          <span className="page-text">
+            {(meta.current_page - 1) * meta.per_page + 1}–
+            {Math.min(meta.current_page * meta.per_page, meta.total)} dari{" "}
+            {meta.total}
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: ".25rem" }}>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="page-nav" aria-label="Previous page"
             >
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="page-nav"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: meta.last_page }, (_, i) => i + 1)
-                .filter(
-                  (p) =>
-                    p === 1 || p === meta.last_page || Math.abs(p - page) <= 2,
-                )
-                .map((p, i, arr) => (
-                  <span
-                    key={p}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: ".25rem",
-                    }}
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: meta.last_page }, (_, i) => i + 1)
+              .filter(
+                (p) =>
+                  p === 1 || p === meta.last_page || Math.abs(p - page) <= 2,
+              )
+              .map((p, i, arr) => (
+                <span
+                  key={p}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: ".25rem",
+                  }}
+                >
+                  {i > 0 && arr[i - 1] !== p - 1 && (
+                    <span style={{ color: "var(--text-muted)" }}>…</span>
+                  )}
+                  <button
+                    onClick={() => setPage(p)}
+                    className={p === page ? "page-current" : "page-default"}
                   >
-                    {i > 0 && arr[i - 1] !== p - 1 && (
-                      <span style={{ color: "var(--text-muted)" }}>…</span>
-                    )}
-                    <button
-                      onClick={() => setPage(p)}
-                      className={p === page ? "page-current" : "page-default"}
-                    >
-                      {p}
-                    </button>
-                  </span>
-                ))}
-              <button
-                disabled={page >= meta.last_page}
-                onClick={() => setPage((p) => p + 1)}
-                className="page-nav"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+                    {p}
+                  </button>
+                </span>
+              ))}
+            <button
+              disabled={page >= meta.last_page}
+              onClick={() => setPage((p) => p + 1)}
+              className="page-nav" aria-label="Next page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
       <Modal
         isOpen={showBulkDeleteModal}

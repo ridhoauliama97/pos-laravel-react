@@ -3,13 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
-import {
-  Upload,
-  X,
-  Package,
-  ArrowLeft,
-  Save,
-} from "../components/icons";
+import { Upload, X, Package, ArrowLeft, Save } from "../components/icons";
 import type { Product } from "../types";
 import { useT } from "../i18n";
 import { SearchSelect } from "../components/SearchSelect";
@@ -101,7 +95,8 @@ export default function ProductFormPage() {
         fd.append("is_active", form.is_active ? "1" : "0");
         if (form.sku) fd.append("sku", form.sku);
         if (form.barcode) fd.append("barcode", form.barcode);
-        if (form.category_id) fd.append("category_id", String(form.category_id));
+        if (form.category_id)
+          fd.append("category_id", String(form.category_id));
         if (form.unit_id) fd.append("unit_id", String(form.unit_id));
         if (form.min_stock > 0) fd.append("min_stock", String(form.min_stock));
         fd.append("image", imageFile!);
@@ -161,7 +156,10 @@ export default function ProductFormPage() {
   if (isEdit && isLoadingProduct) {
     return (
       <div className="page-container">
-        <div className="card card-body" style={{ textAlign: "center", padding: "3rem" }}>
+        <div
+          className="card card-body"
+          style={{ textAlign: "center", padding: "3rem" }}
+        >
           {t("common.loading")}
         </div>
       </div>
@@ -202,10 +200,20 @@ export default function ProductFormPage() {
       </div>
 
       <form id="product-form" onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div
+          className="card"
+          style={{
+            padding: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.25rem",
+          }}
+        >
           {/* Image */}
           <div className="form-group">
-            <label className="form-label">{t("products.form.productImage")}</label>
+            <label className="form-label">
+              {t("products.form.productImage")}
+            </label>
             <div className="flex items-center gap-4">
               <div
                 style={{
@@ -224,10 +232,21 @@ export default function ProductFormPage() {
               >
                 {imagePreview ? (
                   <>
-                    <img src={imagePreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
                     <button
                       type="button"
-                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview(null);
+                      }}
                       style={{
                         position: "absolute",
                         top: "0.25rem",
@@ -288,9 +307,13 @@ export default function ProductFormPage() {
 
           {/* Name */}
           <div className="form-group">
-            <label className="form-label">{t("products.form.productName")}</label>
+            <label className="form-label">
+              {t("products.form.productName")}
+            </label>
             <input
               required
+              name="name"
+              autoComplete="name"
               value={form.name}
               onChange={(e) => handleFieldChange("name", e.target.value)}
               className="form-input"
@@ -303,6 +326,9 @@ export default function ProductFormPage() {
             <div className="form-group">
               <label className="form-label">{t("products.form.sku")}</label>
               <input
+                name="sku"
+                autoComplete="off"
+                spellCheck={false}
                 value={form.sku}
                 onChange={(e) => handleFieldChange("sku", e.target.value)}
                 className="form-input"
@@ -312,6 +338,9 @@ export default function ProductFormPage() {
             <div className="form-group">
               <label className="form-label">{t("products.form.barcode")}</label>
               <input
+                name="barcode"
+                autoComplete="off"
+                spellCheck={false}
                 value={form.barcode}
                 onChange={(e) => handleFieldChange("barcode", e.target.value)}
                 className="form-input"
@@ -341,22 +370,34 @@ export default function ProductFormPage() {
           {/* Buy + Sell Price */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="form-group">
-              <label className="form-label">{t("products.form.buyPrice")}</label>
+              <label className="form-label">
+                {t("products.form.buyPrice")}
+              </label>
               <input
                 type="number"
                 required
+                name="buy_price"
+                autoComplete="off"
                 value={form.buy_price}
-                onChange={(e) => handleFieldChange("buy_price", Number(e.target.value))}
+                onChange={(e) =>
+                  handleFieldChange("buy_price", Number(e.target.value))
+                }
                 className="form-input"
               />
             </div>
             <div className="form-group">
-              <label className="form-label">{t("products.form.sellPrice")}</label>
+              <label className="form-label">
+                {t("products.form.sellPrice")}
+              </label>
               <input
                 type="number"
                 required
+                name="sell_price"
+                autoComplete="off"
                 value={form.sell_price}
-                onChange={(e) => handleFieldChange("sell_price", Number(e.target.value))}
+                onChange={(e) =>
+                  handleFieldChange("sell_price", Number(e.target.value))
+                }
                 className="form-input"
               />
             </div>
@@ -367,18 +408,35 @@ export default function ProductFormPage() {
             <label className="form-label">{t("products.form.minStock")}</label>
             <input
               type="number"
+              name="min_stock"
+              autoComplete="off"
               value={form.min_stock}
-              onChange={(e) => handleFieldChange("min_stock", Number(e.target.value))}
+              onChange={(e) =>
+                handleFieldChange("min_stock", Number(e.target.value))
+              }
               className="form-input"
             />
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.25rem", display: "flex", justifyContent: "flex-end" }}>
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: "1.25rem",
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
             <button
               type="submit"
               disabled={saveMutation.isPending}
               className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: ".5rem", minWidth: "8rem", justifyContent: "center" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: ".5rem",
+                minWidth: "8rem",
+                justifyContent: "center",
+              }}
             >
               <Save className="w-4 h-4" />
               {saveMutation.isPending ? t("common.saving") : t("common.save")}

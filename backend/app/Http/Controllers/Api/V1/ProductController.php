@@ -47,9 +47,15 @@ class ProductController extends Controller
 
         $products = $query->latest()->paginate($request->per_page ?? 20);
 
+        $items = collect($products->items())->map(function (Product $product) {
+            $product->setAttribute('available_stock', $this->computeAvailableStock($product));
+
+            return $product;
+        })->all();
+
         return response()->json([
             'success' => true,
-            'data' => $products->items(),
+            'data' => $items,
             'message' => 'Daftar produk',
             'meta' => [
                 'current_page' => $products->currentPage(),
@@ -200,5 +206,12 @@ class ProductController extends Controller
             'data' => null,
             'message' => 'Produk berhasil dihapus',
         ]);
+    }
+
+    private function computeAvailableStock(Product $product): int
+    {
+        $variantStock = $product->variants?->sum('stock') ?? 0;
+
+        return (int) $variantStock + (int) ($product->stock ?? 0);
     }
 }

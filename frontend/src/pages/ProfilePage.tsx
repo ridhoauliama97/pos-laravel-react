@@ -3,7 +3,13 @@ import { api } from "../services/api";
 import { useAuthStore } from "../stores";
 import { useT } from "../i18n";
 import { useState, useEffect } from "react";
-import { Loader2, Camera, AlertTriangle, Eye, EyeOff } from "../components/icons";
+import {
+  Loader2,
+  Camera,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+} from "../components/icons";
 import toast from "react-hot-toast";
 import CropModal from "../components/CropModal";
 
@@ -201,6 +207,7 @@ export default function ProfilePage() {
                   accept="image/*"
                   style={{ display: "none" }}
                   onChange={handleFileSelect}
+                  aria-label={t("profile.uploadAvatar")}
                 />
               </label>
             </div>
@@ -209,6 +216,8 @@ export default function ProfilePage() {
             <div className="form-group">
               <label className="form-label">{t("settings.profile.name")}</label>
               <input
+                name="name"
+                autoComplete="name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="form-input"
@@ -220,6 +229,9 @@ export default function ProfilePage() {
                 {t("settings.profile.email")}
               </label>
               <input
+                name="email"
+                autoComplete="email"
+                spellCheck={false}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="form-input"
@@ -238,6 +250,8 @@ export default function ProfilePage() {
                   {t("settings.profile.phone")}
                 </label>
                 <input
+                  name="phone"
+                  autoComplete="tel"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   className="form-input"
@@ -248,6 +262,8 @@ export default function ProfilePage() {
                   {t("settings.profile.address")}
                 </label>
                 <input
+                  name="address"
+                  autoComplete="street-address"
                   value={form.address}
                   onChange={(e) =>
                     setForm({ ...form, address: e.target.value })
@@ -295,6 +311,9 @@ export default function ProfilePage() {
                 <div style={{ position: "relative" }}>
                   <input
                     type={showPassword.current ? "text" : "password"}
+                    name="current_password"
+                    autoComplete="current-password"
+                    spellCheck={false}
                     value={passwordForm.current_password}
                     onChange={(e) =>
                       setPasswordForm({
@@ -321,6 +340,8 @@ export default function ProfilePage() {
                       color: "var(--text-muted)",
                       padding: "0.25rem",
                     }}
+                    aria-label={showPassword.current ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword.current}
                   >
                     {showPassword.current ? (
                       <EyeOff className="w-4 h-4" />
@@ -346,6 +367,9 @@ export default function ProfilePage() {
                   <div style={{ position: "relative" }}>
                     <input
                       type={showPassword.new ? "text" : "password"}
+                      name="new_password"
+                      autoComplete="new-password"
+                      spellCheck={false}
                       value={passwordForm.new_password}
                       onChange={(e) =>
                         setPasswordForm({
@@ -372,6 +396,8 @@ export default function ProfilePage() {
                         color: "var(--text-muted)",
                         padding: "0.25rem",
                       }}
+                      aria-label={showPassword.new ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword.new}
                     >
                       {showPassword.new ? (
                         <EyeOff className="w-4 h-4" />
@@ -388,6 +414,53 @@ export default function ProfilePage() {
                   <div style={{ position: "relative" }}>
                     <input
                       type={showPassword.confirm ? "text" : "password"}
+                      value={passwordForm.new_password_confirmation}
+                      onChange={(e) =>
+                        setPasswordForm({
+                          ...passwordForm,
+                          new_password_confirmation: e.target.value,
+                        })
+                      }
+                      className="form-input"
+                      style={{ paddingRight: "2.5rem" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowPassword((p) => ({ ...p, confirm: !p.confirm }))
+                      }
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--text-muted)",
+                        padding: "0.25rem",
+                      }}
+                      aria-label={showPassword.confirm ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword.confirm}
+                    >
+                      {showPassword.confirm ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">
+                    {t("profile.confirmPassword")}
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword.confirm ? "text" : "password"}
+                      name="new_password_confirmation"
+                      autoComplete="new-password"
+                      spellCheck={false}
                       value={passwordForm.new_password_confirmation}
                       onChange={(e) =>
                         setPasswordForm({

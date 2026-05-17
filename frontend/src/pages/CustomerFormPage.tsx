@@ -47,9 +47,7 @@ export default function CustomerFormPage() {
 
   const saveMutation = useMutation({
     mutationFn: (d: typeof form) =>
-      isEdit
-        ? api.put(`/customers/${id}`, d)
-        : api.post("/customers", d),
+      isEdit ? api.put(`/customers/${id}`, d) : api.post("/customers", d),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customer", id] });
@@ -72,7 +70,10 @@ export default function CustomerFormPage() {
   if (isEdit && isLoadingCustomer) {
     return (
       <div className="page-container">
-        <div className="card card-body" style={{ textAlign: "center", padding: "3rem" }}>
+        <div
+          className="card card-body"
+          style={{ textAlign: "center", padding: "3rem" }}
+        >
           {t("common.loading")}
         </div>
       </div>
@@ -113,24 +114,54 @@ export default function CustomerFormPage() {
       </div>
 
       <form id="customer-form" onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div
+          className="card"
+          style={{
+            padding: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.25rem",
+          }}
+        >
           {/* Checkboxes */}
           <div style={{ display: "flex", gap: "1.5rem" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer", fontSize: ".875rem", color: "var(--text-primary)" }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: ".5rem",
+                cursor: "pointer",
+                fontSize: ".875rem",
+                color: "var(--text-primary)",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={form.is_active}
-                onChange={(e) => handleFieldChange("is_active", e.target.checked)}
+                onChange={(e) =>
+                  handleFieldChange("is_active", e.target.checked)
+                }
                 className="form-checkbox"
                 style={{ width: "1.125rem", height: "1.125rem" }}
               />
               {t("customers.form.isActive")}
             </label>
-            <label style={{ display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer", fontSize: ".875rem", color: "var(--text-primary)" }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: ".5rem",
+                cursor: "pointer",
+                fontSize: ".875rem",
+                color: "var(--text-primary)",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={form.is_member}
-                onChange={(e) => handleFieldChange("is_member", e.target.checked)}
+                onChange={(e) =>
+                  handleFieldChange("is_member", e.target.checked)
+                }
                 className="form-checkbox"
                 style={{ width: "1.125rem", height: "1.125rem" }}
               />
@@ -143,6 +174,8 @@ export default function CustomerFormPage() {
             <label className="form-label">{t("customers.form.name")}</label>
             <input
               required
+              name="name"
+              autoComplete="name"
               value={form.name}
               onChange={(e) => handleFieldChange("name", e.target.value)}
               className="form-input"
@@ -155,6 +188,8 @@ export default function CustomerFormPage() {
             <div className="form-group">
               <label className="form-label">{t("customers.form.phone")}</label>
               <input
+                name="phone"
+                autoComplete="tel"
                 value={form.phone}
                 onChange={(e) => handleFieldChange("phone", e.target.value)}
                 className="form-input"
@@ -165,6 +200,9 @@ export default function CustomerFormPage() {
               <label className="form-label">{t("customers.form.email")}</label>
               <input
                 type="email"
+                name="email"
+                autoComplete="email"
+                spellCheck={false}
                 value={form.email}
                 onChange={(e) => handleFieldChange("email", e.target.value)}
                 className="form-input"
@@ -185,12 +223,25 @@ export default function CustomerFormPage() {
             />
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.25rem", display: "flex", justifyContent: "flex-end" }}>
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: "1.25rem",
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
             <button
               type="submit"
               disabled={saveMutation.isPending}
               className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: ".5rem", minWidth: "8rem", justifyContent: "center" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: ".5rem",
+                minWidth: "8rem",
+                justifyContent: "center",
+              }}
             >
               <Save className="w-4 h-4" />
               {saveMutation.isPending ? t("common.saving") : t("common.save")}

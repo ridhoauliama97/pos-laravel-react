@@ -2,15 +2,41 @@ import { useT } from "../i18n";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../services/api";
 import toast from "react-hot-toast";
-import { Plus, Edit, Trash2, Shield, Lock, Search, Check, LayoutGrid, List, AlertTriangle, CheckSquare, LayoutDashboard, Package, Layers, Truck, Users, ShoppingCart, History, BarChart3, Settings, Warehouse, Ticket, GitMerge } from "../components/icons";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Shield,
+  Lock,
+  Search,
+  Check,
+  LayoutGrid,
+  List,
+  AlertTriangle,
+  CheckSquare,
+  LayoutDashboard,
+  Package,
+  Layers,
+  Truck,
+  Users,
+  ShoppingCart,
+  History,
+  BarChart3,
+  Settings,
+  Warehouse,
+  Ticket,
+  GitMerge,
+} from "../components/icons";
 import { useState, useMemo } from "react";
 import type { Role, Permission } from "../types";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
 import { Modal } from "../components/Modal";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 export default function RolesPage() {
   const [showModal, setShowModal] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -21,7 +47,7 @@ export default function RolesPage() {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
   const [activeGroup, setActiveGroup] = useState<string>("");
-  
+
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -90,7 +116,9 @@ export default function RolesPage() {
     mutationFn: (id: number) => api.delete(`/roles/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
-      setSelectedIds((prev) => prev.filter((i) => i !== deleteMutation.variables));
+      setSelectedIds((prev) =>
+        prev.filter((i) => i !== deleteMutation.variables),
+      );
       toast.success(t("roles.deleted"));
     },
     onError: (err: any) =>
@@ -176,7 +204,7 @@ export default function RolesPage() {
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -190,10 +218,17 @@ export default function RolesPage() {
     if (g.includes("supplier")) return <Truck className="w-4 h-4" />;
     if (g.includes("customer")) return <Users className="w-4 h-4" />;
     if (g.includes("pos")) return <ShoppingCart className="w-4 h-4" />;
-    if (g.includes("sale") || g.includes("history")) return <History className="w-4 h-4" />;
+    if (g.includes("sale") || g.includes("history"))
+      return <History className="w-4 h-4" />;
     if (g.includes("report")) return <BarChart3 className="w-4 h-4" />;
     if (g.includes("setting")) return <Settings className="w-4 h-4" />;
-    if (g.includes("stock") || g.includes("inventor") || g.includes("adjust") || g.includes("mutat")) return <Warehouse className="w-4 h-4" />;
+    if (
+      g.includes("stock") ||
+      g.includes("inventor") ||
+      g.includes("adjust") ||
+      g.includes("mutat")
+    )
+      return <Warehouse className="w-4 h-4" />;
     if (g.includes("promo")) return <Ticket className="w-4 h-4" />;
     if (g.includes("user")) return <Users className="w-4 h-4" />;
     if (g.includes("branch")) return <GitMerge className="w-4 h-4" />;
@@ -202,15 +237,15 @@ export default function RolesPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div className="page-container">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <Shield className="w-7 h-7 text-[var(--accent)]" />
+          <h1 className="page-title flex items-center gap-2">
+            <Shield className="w-7 h-7 text-(--accent)" />
             {t("roles.title")}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="page-subtitle">
             {t("roles.subtitle")}
           </p>
         </div>
@@ -221,9 +256,10 @@ export default function RolesPage() {
               onClick={() => setViewMode("list")}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === "list"
-                  ? "bg-[var(--accent)] text-white shadow-lg shadow-indigo-500/20"
+                  ? "bg-(--accent) text-white shadow-lg shadow-indigo-500/20"
                   : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               }`}
+              title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
             >
               <List className="w-4 h-4" />
             </button>
@@ -231,9 +267,10 @@ export default function RolesPage() {
               onClick={() => setViewMode("grid")}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === "grid"
-                  ? "bg-[var(--accent)] text-white shadow-lg shadow-indigo-500/20"
+                  ? "bg-(--accent) text-white shadow-lg shadow-indigo-500/20"
                   : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               }`}
+              title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -269,39 +306,33 @@ export default function RolesPage() {
       </div>
 
       {viewMode === "list" ? (
-        <div className="table-card overflow-hidden border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm shadow-xl rounded-2xl">
+        <div className="table-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="w-12 px-4 py-4 text-center">
+                <tr>
+                  <th className="center" style={{ width: "3rem" }}>
                     <input
                       type="checkbox"
-                      checked={roles.length > 0 && selectedIds.length === roles.length}
+                      checked={
+                        roles.length > 0 && selectedIds.length === roles.length
+                      }
                       ref={(input) => {
                         if (input) {
-                          input.indeterminate = selectedIds.length > 0 && selectedIds.length < roles.length;
+                          input.indeterminate =
+                            selectedIds.length > 0 &&
+                            selectedIds.length < roles.length;
                         }
                       }}
                       onChange={(e) => toggleSelectAll(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)]"
+                      className="w-4 h-4 rounded border-slate-300 text-(--accent) focus:ring-(--accent)" aria-label="Select all roles"
                     />
                   </th>
-                  <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {t("roles.table.name")}
-                  </th>
-                  <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {t("roles.table.description")}
-                  </th>
-                  <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                    {t("roles.table.system")}
-                  </th>
-                  <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                    {t("roles.table.permissions")}
-                  </th>
-                  <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">
-                    {t("common.actions")}
-                  </th>
+                  <th>{t("roles.table.name")}</th>
+                  <th>{t("roles.table.description")}</th>
+                  <th className="center">{t("roles.table.system")}</th>
+                  <th className="center">{t("roles.table.permissions")}</th>
+                  <th className="right">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -309,8 +340,10 @@ export default function RolesPage() {
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-10 h-10 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-                        <span className="text-sm text-slate-500 font-medium">{t("common.loading")}</span>
+                        <div className="w-10 h-10 border-4 border-(--accent) border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm text-slate-500 font-medium">
+                          {t("common.loading")}
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -319,7 +352,9 @@ export default function RolesPage() {
                     <td colSpan={6} className="px-4 py-20 text-center">
                       <div className="flex flex-col items-center opacity-30">
                         <Shield className="w-16 h-16 mb-4" />
-                        <p className="text-lg font-medium">{t("roles.empty")}</p>
+                        <p className="text-lg font-medium">
+                          {t("roles.empty")}
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -327,79 +362,64 @@ export default function RolesPage() {
                   roles.map((r) => (
                     <tr
                       key={r.id}
-                      className={`group hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors ${
-                        selectedIds.includes(r.id) ? "bg-[var(--accent-light)]/30" : ""
-                      }`}
+                      className={selectedIds.includes(r.id) ? "selected" : ""}
                     >
-                      <td className="px-4 py-4 text-center">
+                      <td className="center">
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(r.id)}
                           onChange={() => toggleSelect(r.id)}
-                          className="w-4 h-4 rounded border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)]"
+                          className="w-4 h-4 rounded border-slate-300 text-(--accent) focus:ring-(--accent)" aria-label={`Select ${r.display_name}`}
                         />
                       </td>
-                      <td className="px-4 py-4">
+                      <td>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-110 transition-transform">
+                          <div className="w-10 h-10 rounded-lg bg-(--accent-light) text-(--accent) flex items-center justify-center font-bold text-sm">
                             {r.display_name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-white">
-                              {r.display_name}
-                            </div>
-                            <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                            <div className="font-bold">{r.display_name}</div>
+                            <div className="text-xs font-mono-geist text-(--text-muted)">
                               {r.name}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400 italic">
+                      <td className="muted">
                         {r.description || "—"}
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        {r.is_system ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 border border-sky-100 dark:border-sky-500/20">
-                            {t("common.yes")}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400 border border-slate-200 dark:border-slate-500/20">
-                            {t("common.no")}
-                          </span>
-                        )}
+                      <td className="center">
+                        {r.is_system ? <span className="badge badge-info">{t("common.yes")}</span> : <span className="badge badge-gray">{t("common.no")}</span>}
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 shadow-sm">
+                      <td className="center">
+                        <span className="badge badge-success">
                           <Lock className="w-3 h-3" />
                           {r.permissions?.length || 0}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="right">
+                        <div className="flex justify-end gap-1">
                           {canManage && (
                             <>
                               <button
                                 onClick={() => openPermissions(r)}
-                                className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10 transition-colors"
-                                title={t("roles.managePermissions")}
+                                className="btn-icon success"
+                                title={t("roles.managePermissions")} aria-label={t("roles.managePermissions")}
                               >
                                 <Lock className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => openEdit(r)}
-                                className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10 transition-colors"
-                                title={t("common.edit")}
+                                className="btn-icon edit"
+                                title={t("common.edit")} aria-label={t("common.edit")}
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
                               {!r.is_system && (
                                 <button
-                                  onClick={() => {
-                                    if (confirm(t("roles.deleteConfirm")))
-                                      deleteMutation.mutate(r.id);
-                                  }}
-                                  className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10 transition-colors"
-                                  title={t("common.delete")}
+                                  onClick={() => setDeleteConfirmId(r.id)}
+                                  className="btn-icon danger"
+                                  title={t("common.delete")} aria-label={t("common.delete")}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -419,8 +439,10 @@ export default function RolesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {isLoading ? (
             <div className="col-span-full py-20 text-center bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-              <div className="w-10 h-10 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-slate-500 font-medium">{t("common.loading")}</p>
+              <div className="w-10 h-10 border-4 border-(--accent) border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-slate-500 font-medium">
+                {t("common.loading")}
+              </p>
             </div>
           ) : roles.length === 0 ? (
             <div className="col-span-full py-20 text-center bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
@@ -431,10 +453,10 @@ export default function RolesPage() {
             roles.map((r) => (
               <div
                 key={r.id}
-                className={`group relative flex flex-col bg-white dark:bg-slate-900 border transition-all duration-300 rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 ${
+                className={`card relative flex flex-col overflow-hidden ${
                   selectedIds.includes(r.id)
-                    ? "border-[var(--accent)] ring-1 ring-[var(--accent)]/50 bg-[var(--accent-light)]/10"
-                    : "border-slate-200 dark:border-slate-800 hover:border-[var(--accent)]/50"
+                    ? "border-(--accent) bg-(--accent-light)/10"
+                    : ""
                 }`}
               >
                 {/* Selection Overlay */}
@@ -443,7 +465,7 @@ export default function RolesPage() {
                     type="checkbox"
                     checked={selectedIds.includes(r.id)}
                     onChange={() => toggleSelect(r.id)}
-                    className="w-5 h-5 rounded border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer shadow-sm"
+                    className="w-5 h-5 rounded border-slate-300 text-(--accent) focus:ring-(--accent) cursor-pointer shadow-sm" aria-label={`Select ${r.display_name}`}
                   />
                 </div>
 
@@ -451,7 +473,7 @@ export default function RolesPage() {
                 <div className="p-6 pt-12 flex-1 flex flex-col">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="relative">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform">
+                      <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-(--accent) to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform">
                         {r.display_name.charAt(0).toUpperCase()}
                       </div>
                       {r.is_system && (
@@ -461,7 +483,7 @@ export default function RolesPage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-[var(--accent)] transition-colors">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-(--accent) transition-colors">
                         {r.display_name}
                       </h3>
                       <p className="text-xs font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md inline-block mt-1">
@@ -478,7 +500,10 @@ export default function RolesPage() {
                     <div className="flex items-center gap-2">
                       <div className="flex -space-x-2">
                         {[...Array(3)].map((_, i) => (
-                          <div key={i} className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-white dark:border-slate-900 flex items-center justify-center">
+                          <div
+                            key={i}
+                            className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-white dark:border-slate-900 flex items-center justify-center"
+                          >
                             <Users className="w-3 h-3 text-slate-400" />
                           </div>
                         ))}
@@ -499,25 +524,22 @@ export default function RolesPage() {
                   <button
                     onClick={() => openPermissions(r)}
                     className="p-2 rounded-xl text-emerald-600 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-500/20 transition-all active:scale-95"
-                    title={t("roles.managePermissions")}
+                    title={t("roles.managePermissions")} aria-label={t("roles.managePermissions")}
                   >
                     <Lock className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => openEdit(r)}
                     className="p-2 rounded-xl text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-500/20 transition-all active:scale-95"
-                    title={t("common.edit")}
+                    title={t("common.edit")} aria-label={t("common.edit")}
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   {!r.is_system && (
                     <button
-                      onClick={() => {
-                        if (confirm(t("roles.deleteConfirm")))
-                          deleteMutation.mutate(r.id);
-                      }}
+                      onClick={() => setDeleteConfirmId(r.id)}
                       className="p-2 rounded-xl text-rose-600 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-500/20 transition-all active:scale-95"
-                      title={t("common.delete")}
+                      title={t("common.delete")} aria-label={t("common.delete")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -549,7 +571,9 @@ export default function RolesPage() {
               disabled={bulkDeleteMutation.isPending}
               className="btn btn-danger flex-1"
             >
-              {bulkDeleteMutation.isPending ? t("common.loading") : t("common.delete")}
+              {bulkDeleteMutation.isPending
+                ? t("common.loading")
+                : t("common.delete")}
             </button>
           </div>
         }
@@ -562,7 +586,8 @@ export default function RolesPage() {
             Hapus {selectedIds.length} Role?
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-            Tindakan ini akan menghapus data role yang dipilih secara permanen. Pastikan tidak ada user yang terikat dengan role ini.
+            Tindakan ini akan menghapus data role yang dipilih secara permanen.
+            Pastikan tidak ada user yang terikat dengan role ini.
           </p>
         </div>
       </Modal>
@@ -652,7 +677,7 @@ export default function RolesPage() {
             <div className="text-xs text-slate-500 font-medium">
               {!isSuperAdmin && (
                 <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-(--accent) animate-pulse" />
                   {selectedPermissions.length} {t("common.selected")}
                 </span>
               )}
@@ -691,10 +716,10 @@ export default function RolesPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-5">
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-xl shadow-indigo-500/30">
+                  <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-(--accent) to-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-xl shadow-indigo-500/30">
                     {selectedRole?.display_name?.charAt(0).toUpperCase()}
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-[var(--accent)] shadow-md">
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-(--accent) shadow-md">
                     <Shield className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -728,13 +753,13 @@ export default function RolesPage() {
                       className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-(--accent)/20 focus:border-(--accent) outline-none transition-all shadow-sm"
                       placeholder="Cari izin akses..."
                       value={permSearch}
-                      onChange={(e) => setPermSearch(e.target.value)}
+                      onChange={(e) => setPermSearch(e.target.value)} aria-label="Cari izin akses"
                     />
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="flex-1 sm:flex-none text-[10px] font-bold text-slate-600 hover:text-[var(--accent)] px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[var(--accent)] transition-all bg-white dark:bg-slate-900 shadow-sm"
+                      className="flex-1 sm:flex-none text-[10px] font-bold text-slate-600 hover:text-(--accent) px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-(--accent) transition-all bg-white dark:bg-slate-900 shadow-sm"
                       onClick={selectAll}
                     >
                       PILIH SEMUA
@@ -764,9 +789,11 @@ export default function RolesPage() {
                     <Lock className="w-5 h-5" />
                   </div>
                 </div>
-                <h3 className="font-bold text-2xl text-slate-900 dark:text-white mb-4 tracking-tight">Akses Administrator Utama</h3>
+                <h3 className="font-bold text-2xl text-slate-900 dark:text-white mb-4 tracking-tight">
+                  Akses Administrator Utama
+                </h3>
                 <p className="max-w-md text-slate-500 dark:text-slate-400 leading-relaxed text-base">
-                  Peran ini memiliki izin penuh terhadap seluruh fitur sistem. 
+                  Peran ini memiliki izin penuh terhadap seluruh fitur sistem.
                   <span className="block mt-4 text-amber-600 dark:text-amber-400 font-bold text-sm bg-amber-50 dark:bg-amber-500/5 py-2 px-4 rounded-xl border border-amber-100 dark:border-amber-500/10">
                     Keamanan tingkat tinggi diaktifkan untuk peran ini.
                   </span>
@@ -777,9 +804,13 @@ export default function RolesPage() {
                 {/* Slim Quick-Nav Sidebar */}
                 <div className="w-72 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 overflow-y-auto custom-scrollbar hidden lg:block">
                   <div className="p-5 space-y-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-4">MODUL AKSES</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-4">
+                      MODUL AKSES
+                    </p>
                     {Object.entries(filteredGroups).map(([group, perms]) => {
-                      const selectedCount = perms.filter(p => selectedPermissions.includes(p.id)).length;
+                      const selectedCount = perms.filter((p) =>
+                        selectedPermissions.includes(p.id),
+                      ).length;
                       const totalCount = perms.length;
                       const isComplete = selectedCount === totalCount;
                       const isActive = activeGroup === group;
@@ -789,8 +820,13 @@ export default function RolesPage() {
                           key={group}
                           onClick={() => {
                             setActiveGroup(group);
-                            const element = document.getElementById(`group-${group}`);
-                            element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            const element = document.getElementById(
+                              `group-${group}`,
+                            );
+                            element?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
                           }}
                           className={`w-full text-left p-3.5 rounded-2xl flex items-center gap-3 transition-all duration-300 ${
                             isActive
@@ -798,23 +834,33 @@ export default function RolesPage() {
                               : "hover:bg-slate-200/50 dark:hover:bg-slate-800/30 text-slate-500 dark:text-slate-400"
                           }`}
                         >
-                          <div className={`p-2 rounded-xl transition-all duration-300 ${
-                            isActive ? "bg-[var(--accent)] text-white shadow-lg shadow-indigo-500/20 scale-110" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
-                          }`}>
+                          <div
+                            className={`p-2 rounded-xl transition-all duration-300 ${
+                              isActive
+                                ? "bg-(--accent) text-white shadow-lg shadow-indigo-500/20 scale-110"
+                                : "bg-slate-200 dark:bg-slate-800 text-slate-400"
+                            }`}
+                          >
                             {getGroupIcon(group)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className={`text-xs font-bold truncate mb-1.5 ${isActive ? "text-slate-900 dark:text-white" : ""}`}>
+                            <div
+                              className={`text-xs font-bold truncate mb-1.5 ${isActive ? "text-slate-900 dark:text-white" : ""}`}
+                            >
                               {group}
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full transition-all duration-700 ease-out ${isComplete ? 'bg-emerald-500' : 'bg-[var(--accent)]'}`}
-                                  style={{ width: `${(selectedCount/totalCount)*100}%` }}
+                                <div
+                                  className={`h-full transition-all duration-700 ease-out ${isComplete ? "bg-emerald-500" : "bg-(--accent)"}`}
+                                  style={{
+                                    width: `${(selectedCount / totalCount) * 100}%`,
+                                  }}
                                 />
                               </div>
-                              <span className="text-[9px] font-mono font-bold opacity-70">{selectedCount}/{totalCount}</span>
+                              <span className="text-[9px] font-mono font-bold opacity-70">
+                                {selectedCount}/{totalCount}
+                              </span>
                             </div>
                           </div>
                         </button>
@@ -831,19 +877,31 @@ export default function RolesPage() {
                         <div className="w-20 h-20 rounded-3xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-300">
                           <Search className="w-10 h-10" />
                         </div>
-                        <h4 className="text-slate-900 dark:text-white font-bold mb-2">Hasil Tidak Ditemukan</h4>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">Coba kata kunci lain atau periksa ejaan Anda.</p>
+                        <h4 className="text-slate-900 dark:text-white font-bold mb-2">
+                          Hasil Tidak Ditemukan
+                        </h4>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                          Coba kata kunci lain atau periksa ejaan Anda.
+                        </p>
                       </div>
                     ) : (
                       Object.entries(filteredGroups).map(([group, perms]) => {
-                        const allSelected = perms.every(p => selectedPermissions.includes(p.id));
-                        const selectedCount = perms.filter(p => selectedPermissions.includes(p.id)).length;
+                        const allSelected = perms.every((p) =>
+                          selectedPermissions.includes(p.id),
+                        );
+                        const selectedCount = perms.filter((p) =>
+                          selectedPermissions.includes(p.id),
+                        ).length;
 
                         return (
-                          <div key={group} id={`group-${group}`} className="scroll-mt-8">
+                          <div
+                            key={group}
+                            id={`group-${group}`}
+                            className="scroll-mt-8"
+                          >
                             <div className="sticky top-0 z-20 py-3 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 mb-6 flex items-center justify-between">
                               <div className="flex items-center gap-4">
-                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 text-[var(--accent)] shadow-inner">
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 text-(--accent) shadow-inner">
                                   {getGroupIcon(group)}
                                 </div>
                                 <div>
@@ -851,42 +909,55 @@ export default function RolesPage() {
                                     {group}
                                   </h3>
                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                    {selectedCount} dari {perms.length} Izin Aktif
+                                    {selectedCount} dari {perms.length} Izin
+                                    Aktif
                                   </p>
                                 </div>
                               </div>
                               <button
                                 type="button"
-                                onClick={() => selectAllGroup(group, !allSelected)}
+                                onClick={() =>
+                                  selectAllGroup(group, !allSelected)
+                                }
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-extrabold transition-all border-2 ${
                                   allSelected
                                     ? "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20"
-                                    : "bg-white text-[var(--accent)] border-slate-100 hover:border-[var(--accent)] dark:bg-slate-900 dark:border-slate-800 dark:hover:border-[var(--accent)] shadow-sm"
+                                    : "bg-white text-(--accent) border-slate-100 hover:border-(--accent) dark:bg-slate-900 dark:border-slate-800 dark:hover:border-(--accent) shadow-sm"
                                 }`}
                               >
-                                {allSelected ? <Trash2 className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
+                                {allSelected ? (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                ) : (
+                                  <CheckSquare className="w-3.5 h-3.5" />
+                                )}
                                 {allSelected ? "BATAL SEMUA" : "PILIH SEMUA"}
                               </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
                               {perms.map((p) => {
-                                const isChecked = selectedPermissions.includes(p.id);
+                                const isChecked = selectedPermissions.includes(
+                                  p.id,
+                                );
                                 return (
                                   <label
                                     key={p.id}
                                     className={`relative flex items-center gap-4 p-5 rounded-[1.25rem] cursor-pointer transition-all border-2 group ${
                                       isChecked
-                                        ? "bg-white dark:bg-slate-900 border-[var(--accent)] shadow-xl shadow-indigo-500/10 ring-1 ring-[var(--accent)]/5 scale-[1.02] z-10"
+                                        ? "bg-white dark:bg-slate-900 border-(--accent) shadow-xl shadow-indigo-500/10 ring-1 ring-(--accent)/5 scale-[1.02] z-10"
                                         : "bg-slate-50/50 dark:bg-slate-900/30 border-transparent hover:border-slate-200 dark:hover:border-slate-700"
                                     }`}
                                   >
-                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border-2 transition-all duration-300 ${
-                                      isChecked
-                                        ? "bg-[var(--accent)] border-[var(--accent)] shadow-lg shadow-indigo-500/30"
-                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 group-hover:border-slate-300"
-                                    }`}>
-                                      {isChecked && <Check className="w-4 h-4 text-white stroke-[4px] animate-in zoom-in-50" />}
+                                    <div
+                                      className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border-2 transition-all duration-300 ${
+                                        isChecked
+                                          ? "bg-(--accent) border-(--accent) shadow-lg shadow-indigo-500/30"
+                                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 group-hover:border-slate-300"
+                                      }`}
+                                    >
+                                      {isChecked && (
+                                        <Check className="w-4 h-4 text-white stroke-[4px] animate-in zoom-in-50" />
+                                      )}
                                     </div>
                                     <input
                                       type="checkbox"
@@ -895,9 +966,13 @@ export default function RolesPage() {
                                       className="hidden"
                                     />
                                     <div className="flex-1 min-w-0 pr-2">
-                                      <div className={`text-sm font-bold leading-tight mb-1 transition-colors ${
-                                        isChecked ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400"
-                                      }`}>
+                                      <div
+                                        className={`text-sm font-bold leading-tight mb-1 transition-colors ${
+                                          isChecked
+                                            ? "text-slate-900 dark:text-white"
+                                            : "text-slate-600 dark:text-slate-400"
+                                        }`}
+                                      >
                                         {p.display_name}
                                       </div>
                                       <div className="text-[10px] font-mono font-bold tracking-tight text-slate-400 uppercase truncate opacity-60">
@@ -905,7 +980,7 @@ export default function RolesPage() {
                                       </div>
                                     </div>
                                     {isChecked && (
-                                      <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]" />
+                                      <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-(--accent) shadow-[0_0_8px_var(--accent)]" />
                                     )}
                                   </label>
                                 );
@@ -922,6 +997,20 @@ export default function RolesPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId !== null) deleteMutation.mutate(deleteConfirmId);
+        }}
+        title={t("common.delete")}
+        message={t("roles.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

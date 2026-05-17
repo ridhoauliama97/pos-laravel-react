@@ -171,8 +171,6 @@ export default function SettingsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [faviconUploading, setFaviconUploading] = useState(false);
 
-
-
   const companyMutation = useMutation({
     mutationFn: (data: typeof companyForm) =>
       api.put<any>("/settings/company", data),
@@ -379,6 +377,7 @@ export default function SettingsPage() {
                   accept="image/*"
                   style={{ display: "none" }}
                   onChange={handleLogoUpload}
+                  aria-label={t("settings.company.uploadLogo")}
                 />
               </label>
             </div>
@@ -436,6 +435,7 @@ export default function SettingsPage() {
                   accept="image/*,.ico,.svg"
                   style={{ display: "none" }}
                   onChange={handleFaviconUpload}
+                  aria-label={t("settings.company.uploadFavicon")}
                 />
               </label>
             </div>
@@ -443,6 +443,8 @@ export default function SettingsPage() {
             <div className="form-group">
               <label className="form-label">{t("settings.company.name")}</label>
               <input
+                name="name"
+                autoComplete="organization"
                 value={companyForm.name}
                 onChange={(e) =>
                   setCompanyForm({ ...companyForm, name: e.target.value })
@@ -463,10 +465,16 @@ export default function SettingsPage() {
                   {t("settings.company.currency")}
                 </label>
                 <select
+                  name="currency"
+                  autoComplete="off"
                   value={companyForm.currency}
                   onChange={(e) => {
                     const code = e.target.value;
-                    setCompanyForm({ ...companyForm, currency: code, currency_symbol: code || companyForm.currency_symbol });
+                    setCompanyForm({
+                      ...companyForm,
+                      currency: code,
+                      currency_symbol: code || companyForm.currency_symbol,
+                    });
                   }}
                   className="form-input"
                 >
@@ -503,11 +511,13 @@ export default function SettingsPage() {
                   {t("settings.company.language")}
                 </label>
                 <select
+                  name="language"
+                  autoComplete="off"
                   value={companyForm.language}
                   onChange={(e) =>
                     setCompanyForm({ ...companyForm, language: e.target.value })
                   }
-                  className="form-input"
+                  className="form-input" aria-label={t("settings.company.language")}
                 >
                   <option value="id">{t("settings.company.languageId")}</option>
                   <option value="en">{t("settings.company.languageEn")}</option>
@@ -530,22 +540,22 @@ export default function SettingsPage() {
               <label className="form-label">
                 {t("settings.company.dateFormat")}
               </label>
-              <select
-                value={companyForm.date_format}
-                onChange={(e) =>
-                  setCompanyForm({
-                    ...companyForm,
-                    date_format: e.target.value,
-                  })
-                }
-                className="form-input"
-              >
-                <option value="d/m/Y">14/05/2026</option>
-                <option value="d-m-Y">14-05-2026</option>
-                <option value="d F Y">14 Mei 2026</option>
-                <option value="Y-m-d">2026-05-14</option>
-                <option value="m/d/Y">05/14/2026</option>
-              </select>
+                <select
+                  value={companyForm.date_format}
+                  onChange={(e) =>
+                    setCompanyForm({
+                      ...companyForm,
+                      date_format: e.target.value,
+                    })
+                  }
+                  className="form-input" aria-label={t("settings.company.dateFormat")}
+                >
+                  <option value="d/m/Y">14/05/2026</option>
+                  <option value="d-m-Y">14-05-2026</option>
+                  <option value="d F Y">14 Mei 2026</option>
+                  <option value="Y-m-d">2026-05-14</option>
+                  <option value="m/d/Y">05/14/2026</option>
+                </select>
             </div>
 
             <div style={{ display: "flex", gap: ".5rem", marginTop: ".25rem" }}>

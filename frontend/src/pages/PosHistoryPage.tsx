@@ -61,7 +61,8 @@ export default function PosHistoryPage() {
       [t("posHistory.table.cashier")]: tr.user?.name ?? "",
       [t("posHistory.table.customer")]: tr.customer?.name ?? "",
       [t("posHistory.table.time")]: formatDate(tr.created_at),
-      [t("posHistory.table.items")]: tr.items?.reduce((s, i) => s + i.qty, 0) ?? 0,
+      [t("posHistory.table.items")]:
+        tr.items?.reduce((s, i) => s + i.qty, 0) ?? 0,
       [t("posHistory.table.method")]: tr.payment_method,
       [t("posHistory.table.subtotal")]: tr.subtotal,
       [t("posHistory.table.total")]: tr.grand_total,
@@ -176,10 +177,12 @@ export default function PosHistoryPage() {
           </label>
           <input
             type="date"
+            name="date_from"
+            autoComplete="off"
             value={dateFrom}
             onChange={(e) => handleDateFrom(e.target.value)}
             className="form-input"
-            style={{ width: "100%" }}
+            style={{ width: "100%" }} aria-label={t("posHistory.dateFrom")}
           />
         </div>
         <div className="form-group" style={{ margin: 0, minWidth: "8rem" }}>
@@ -188,10 +191,12 @@ export default function PosHistoryPage() {
           </label>
           <input
             type="date"
+            name="date_to"
+            autoComplete="off"
             value={dateTo}
             onChange={(e) => handleDateTo(e.target.value)}
             className="form-input"
-            style={{ width: "100%" }}
+            style={{ width: "100%" }} aria-label={t("posHistory.dateTo")}
           />
         </div>
         <Calendar
@@ -209,7 +214,7 @@ export default function PosHistoryPage() {
             <button
               onClick={handleExportPdf}
               className="btn btn-ghost"
-              style={{ fontSize: ".8125rem", gap: ".375rem" }}
+              style={{ fontSize: ".8125rem", gap: ".375rem" }} aria-label={t("posHistory.exportPdf")}
             >
               <FileText className="w-4 h-4" />
               {t("posHistory.exportPdf")}
@@ -217,7 +222,7 @@ export default function PosHistoryPage() {
             <button
               onClick={handleExportExcel}
               className="btn btn-ghost"
-              style={{ fontSize: ".8125rem", gap: ".375rem" }}
+              style={{ fontSize: ".8125rem", gap: ".375rem" }} aria-label={t("posHistory.exportExcel")}
             >
               <FileSpreadsheet className="w-4 h-4" />
               {t("posHistory.exportExcel")}
@@ -333,7 +338,7 @@ export default function PosHistoryPage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="page-nav"
+                className="page-nav" aria-label="Previous page"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -365,7 +370,7 @@ export default function PosHistoryPage() {
               <button
                 disabled={page >= meta.last_page}
                 onClick={() => setPage((p) => p + 1)}
-                className="page-nav"
+                className="page-nav" aria-label="Next page"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -373,7 +378,6 @@ export default function PosHistoryPage() {
           </div>
         )}
       </div>
-
     </div>
   );
 }

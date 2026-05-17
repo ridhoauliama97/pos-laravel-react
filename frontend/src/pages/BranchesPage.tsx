@@ -8,6 +8,7 @@ import type { Branch } from "../types";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
 import { Modal } from "../components/Modal";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 export default function BranchesPage() {
   const [showModal, setShowModal] = useState(false);
@@ -17,6 +18,7 @@ export default function BranchesPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
   const t = useT();
@@ -106,7 +108,7 @@ export default function BranchesPage() {
                 className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
                 style={viewMode === "list" ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" } : {}}
                 onClick={() => setViewMode("list")}
-                title="List View"
+                title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -115,7 +117,7 @@ export default function BranchesPage() {
                 className={`btn-icon ${viewMode === "grid" ? "active" : ""}`}
                 style={viewMode === "grid" ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" } : {}}
                 onClick={() => setViewMode("grid")}
-                title="Grid View"
+                title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
@@ -158,7 +160,7 @@ export default function BranchesPage() {
                         }
                       }}
                       onChange={(e) => toggleSelectAll(e.target.checked)}
-                      style={{ accentColor: "var(--accent)" }}
+                      style={{ accentColor: "var(--accent)" }} aria-label="Select all branches"
                     />
                   </th>
                   <th>{t("branches.form.name")}</th>
@@ -190,7 +192,7 @@ export default function BranchesPage() {
                           type="checkbox"
                           checked={selectedIds.includes(b.id)}
                           onChange={() => toggleSelect(b.id)}
-                          style={{ accentColor: "var(--accent)" }}
+                          style={{ accentColor: "var(--accent)" }} aria-label={`Select ${b.name}`}
                         />
                       </td>
                       <td>
@@ -217,17 +219,14 @@ export default function BranchesPage() {
                                 setShowModal(true);
                               }}
                               className="btn-icon edit"
-                              title={t("common.edit")}
+                              title={t("common.edit")} aria-label={t("common.edit")}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm(t("branches.deleteConfirm")))
-                                  deleteMutation.mutate(b.id);
-                              }}
+                              onClick={() => setDeleteConfirmId(b.id)}
                               className="btn-icon danger"
-                              title={t("common.delete")}
+                              title={t("common.delete")} aria-label={t("common.delete")}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -289,7 +288,7 @@ export default function BranchesPage() {
                     type="checkbox"
                     checked={selectedIds.includes(b.id)}
                     onChange={() => toggleSelect(b.id)}
-                    style={{ accentColor: "var(--accent)", width: "1.25rem", height: "1.25rem", cursor: "pointer" }}
+                    style={{ accentColor: "var(--accent)", width: "1.25rem", height: "1.25rem", cursor: "pointer" }} aria-label={`Select ${b.name}`}
                   />
                 </div>
                 <div className="card-body" style={{ flex: 1, padding: "1.25rem" }}>
@@ -338,17 +337,14 @@ export default function BranchesPage() {
                         setShowModal(true);
                       }}
                       className="btn-icon edit"
-                      title={t("common.edit")}
+                      title={t("common.edit")} aria-label={t("common.edit")}
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(t("branches.deleteConfirm")))
-                          deleteMutation.mutate(b.id);
-                      }}
+                      onClick={() => setDeleteConfirmId(b.id)}
                       className="btn-icon danger"
-                      title={t("common.delete")}
+                      title={t("common.delete")} aria-label={t("common.delete")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -449,6 +445,8 @@ export default function BranchesPage() {
             <label className="form-label">{t("branches.form.name")} *</label>
             <input
               required
+              name="name"
+              autoComplete="name"
               placeholder={t("branches.form.namePlaceholder")}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -468,6 +466,8 @@ export default function BranchesPage() {
           <div className="form-group">
             <label className="form-label">{t("branches.form.phone")}</label>
             <input
+              name="phone"
+              autoComplete="tel"
               placeholder={t("branches.form.phonePlaceholder")}
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -476,6 +476,20 @@ export default function BranchesPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId !== null) deleteMutation.mutate(deleteConfirmId);
+        }}
+        title={t("common.delete")}
+        message={t("branches.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

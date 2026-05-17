@@ -34,14 +34,13 @@ export default function StockAdjustmentFormPage() {
   });
 
   const products = (productsData?.data || []).filter((p: any) => {
-    const variantStock = p.variants?.reduce((s: number, v: any) => s + v.stock, 0) ?? 0;
+    const variantStock =
+      p.variants?.reduce((s: number, v: any) => s + v.stock, 0) ?? 0;
     return (p.stock ?? 0) + variantStock > 0;
   });
 
   const branches = branchesData?.data || [];
-  const otherBranches = branches.filter(
-    (b: any) => b.id !== selectedBranchId
-  );
+  const otherBranches = branches.filter((b: any) => b.id !== selectedBranchId);
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -87,14 +86,24 @@ export default function StockAdjustmentFormPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="page-title">{t("stockMutations.adjustmentTitle")}</h1>
+            <h1 className="page-title">
+              {t("stockMutations.adjustmentTitle")}
+            </h1>
             <p className="page-subtitle">{t("stockMutations.subtitle")}</p>
           </div>
         </div>
       </div>
 
       <form id="adjustment-form" onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div
+          className="card"
+          style={{
+            padding: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.25rem",
+          }}
+        >
           <SearchSelect
             label={`${t("stockMutations.form.product")} *`}
             options={products}
@@ -105,8 +114,12 @@ export default function StockAdjustmentFormPage() {
           />
 
           <div className="form-group">
-            <label className="form-label">{t("stockMutations.form.type")} *</label>
+            <label className="form-label">
+              {t("stockMutations.form.type")} *
+            </label>
             <select
+              name="type"
+              autoComplete="off"
               value={form.type}
               onChange={(e) =>
                 handleFieldChange("type", e.target.value as "in" | "out")
@@ -124,17 +137,23 @@ export default function StockAdjustmentFormPage() {
               options={otherBranches}
               value={form.to_branch_id}
               onChange={(v) => handleFieldChange("to_branch_id", v)}
-              placeholder={t("stockMutations.form.destinationBranchPlaceholder")}
+              placeholder={t(
+                "stockMutations.form.destinationBranchPlaceholder",
+              )}
               required
             />
           )}
 
           <div className="form-group">
-            <label className="form-label">{t("stockMutations.form.qty")} *</label>
+            <label className="form-label">
+              {t("stockMutations.form.qty")} *
+            </label>
             <input
               type="number"
               required
               min={1}
+              name="qty"
+              autoComplete="off"
               value={form.qty}
               onChange={(e) => handleFieldChange("qty", Number(e.target.value))}
               className="form-input"
@@ -142,9 +161,13 @@ export default function StockAdjustmentFormPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t("stockMutations.form.notes")} *</label>
+            <label className="form-label">
+              {t("stockMutations.form.notes")} *
+            </label>
             <textarea
               required
+              name="note"
+              autoComplete="off"
               value={form.note}
               onChange={(e) => handleFieldChange("note", e.target.value)}
               className="form-textarea"
@@ -153,12 +176,25 @@ export default function StockAdjustmentFormPage() {
             />
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.25rem", display: "flex", justifyContent: "flex-end" }}>
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: "1.25rem",
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
             <button
               type="submit"
               disabled={saveMutation.isPending}
               className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: ".5rem", minWidth: "8rem", justifyContent: "center" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: ".5rem",
+                minWidth: "8rem",
+                justifyContent: "center",
+              }}
             >
               <Save className="w-4 h-4" />
               {saveMutation.isPending ? t("common.saving") : t("common.save")}

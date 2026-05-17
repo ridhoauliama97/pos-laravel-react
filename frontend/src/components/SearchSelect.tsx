@@ -16,7 +16,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   options,
   value,
   onChange,
-  placeholder = "Pilih...",
+  placeholder = "Pilih\u2026",
   label,
   required = false,
   valueKey = "id",
@@ -127,9 +127,9 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
           type="text"
           value={open ? query : displayLabel}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { setOpen(true); }}
           onKeyDown={handleKeyDown}
-          placeholder={open ? placeholder : displayLabel || placeholder}
+          placeholder={open ? query : displayLabel || placeholder}
           style={{
             border: "none",
             background: "transparent",
@@ -151,6 +151,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
               onChange("");
               setQuery("");
             }}
+            aria-label="Clear selection"
             style={{
               background: "none",
               border: "none",

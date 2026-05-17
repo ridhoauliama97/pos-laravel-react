@@ -148,10 +148,10 @@ export default function ReportsPage() {
           <p className="page-subtitle">{t("reports.subtitle")}</p>
         </div>
         <div style={{ display: "flex", gap: ".5rem" }}>
-          <button onClick={handleExportCSV} className="btn btn-ghost">
+          <button onClick={handleExportCSV} className="btn btn-ghost" aria-label="Export CSV">
             <Download className="w-4 h-4" /> CSV
           </button>
-          <button onClick={handleExportXLSX} className="btn btn-ghost">
+          <button onClick={handleExportXLSX} className="btn btn-ghost" aria-label="Export XLSX">
             <FileSpreadsheet className="w-4 h-4" /> XLSX
           </button>
         </div>
@@ -196,7 +196,7 @@ export default function ReportsPage() {
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             className="form-input"
-            style={{ width: "auto", fontSize: ".8125rem" }}
+            style={{ width: "auto", fontSize: ".8125rem" }} aria-label={t("reports.dateFrom")}
           />
           <span style={{ color: "var(--text-muted)" }}>—</span>
           <input
@@ -204,7 +204,7 @@ export default function ReportsPage() {
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             className="form-input"
-            style={{ width: "auto", fontSize: ".8125rem" }}
+            style={{ width: "auto", fontSize: ".8125rem" }} aria-label={t("reports.dateTo")}
           />
         </div>
       </div>
@@ -285,7 +285,7 @@ export default function ReportsPage() {
               >
                 {t("reports.dailySalesChart")}
               </h3>
-              <div style={{ height: "18rem" }}>
+              <div style={{ height: "18rem", minWidth: 0, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={chartData}
@@ -491,7 +491,7 @@ export default function ReportsPage() {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="page-nav"
+                  className="page-nav" aria-label="Previous page"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -525,7 +525,7 @@ export default function ReportsPage() {
                 <button
                   disabled={page >= meta.last_page}
                   onClick={() => setPage((p) => p + 1)}
-                  className="page-nav"
+                  className="page-nav" aria-label="Next page"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

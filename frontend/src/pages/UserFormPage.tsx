@@ -82,11 +82,15 @@ export default function UserFormPage() {
       <div className="page-container">
         <div className="page-header">
           <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
-            <button onClick={() => navigate("/settings/users")} className="btn-icon">
+            <button
+              onClick={() => navigate("/settings/users")}
+              className="btn-icon"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
               <h1 className="page-title">{t("common.loading")}</h1>
+              <p className="page-subtitle">{t("users.subtitle")}</p>
             </div>
           </div>
         </div>
@@ -115,11 +119,21 @@ export default function UserFormPage() {
       </div>
 
       <form id="user-form" onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div
+          className="card"
+          style={{
+            padding: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.25rem",
+          }}
+        >
           <div className="form-group">
             <label className="form-label">{t("users.form.name")}</label>
             <input
               required
+              name="name"
+              autoComplete="name"
               placeholder={t("users.form.namePlaceholder")}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -132,6 +146,9 @@ export default function UserFormPage() {
             <input
               required
               type="email"
+              name="email"
+              autoComplete="email"
+              spellCheck={false}
               placeholder={t("users.form.email")}
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -146,6 +163,9 @@ export default function UserFormPage() {
             </label>
             <input
               type="password"
+              name="password"
+              autoComplete="new-password"
+              spellCheck={false}
               placeholder={t("users.form.passwordPlaceholder")}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -177,15 +197,28 @@ export default function UserFormPage() {
               type="checkbox"
               id="is_active_user"
               checked={form.is_active}
-              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+              onChange={(e) =>
+                setForm({ ...form, is_active: e.target.checked })
+              }
               style={{ accentColor: "var(--accent)" }}
             />
-            <label htmlFor="is_active_user" style={{ fontSize: ".875rem", color: "var(--text-secondary)" }}>
+            <label
+              htmlFor="is_active_user"
+              style={{ fontSize: ".875rem", color: "var(--text-secondary)" }}
+            >
               {t("common.active")}
             </label>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.25rem", display: "flex", justifyContent: "flex-end", gap: ".75rem" }}>
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: "1.25rem",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: ".75rem",
+            }}
+          >
             <button
               type="button"
               onClick={() => navigate("/settings/users")}
@@ -197,7 +230,13 @@ export default function UserFormPage() {
               type="submit"
               disabled={saveMutation.isPending}
               className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: ".5rem", minWidth: "8rem", justifyContent: "center" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: ".5rem",
+                minWidth: "8rem",
+                justifyContent: "center",
+              }}
             >
               <Save className="w-4 h-4" />
               {saveMutation.isPending ? t("common.saving") : t("common.save")}

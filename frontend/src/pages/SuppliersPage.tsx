@@ -24,6 +24,7 @@ import type { Supplier } from "../types";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
 import { Modal } from "../components/Modal";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 interface SupplierStats {
   total: number;
@@ -42,6 +43,7 @@ export default function SuppliersPage() {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -205,7 +207,7 @@ export default function SuppliersPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="search-input"
+            className="search-input" aria-label={t("suppliers.searchPlaceholder")}
           />
         </div>
 
@@ -214,7 +216,7 @@ export default function SuppliersPage() {
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="form-select"
-            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem .75rem" }}
+            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem .75rem" }} aria-label={t("suppliers.filters.allStatus")}
           >
             <option value="">{t("suppliers.filters.allStatus")}</option>
             <option value="1">{t("common.active")}</option>
@@ -246,7 +248,7 @@ export default function SuppliersPage() {
               className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
               style={viewMode === "list" ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" } : {}}
               onClick={() => setViewMode("list")}
-              title="List View"
+              title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
             >
               <List className="w-4 h-4" />
             </button>
@@ -255,7 +257,7 @@ export default function SuppliersPage() {
               className={`btn-icon ${viewMode === "grid" ? "active" : ""}`}
               style={viewMode === "grid" ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" } : {}}
               onClick={() => setViewMode("grid")}
-              title="Grid View"
+              title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -279,7 +281,7 @@ export default function SuppliersPage() {
                         }
                       }}
                       onChange={toggleSelectAll}
-                      style={{ accentColor: "var(--accent)" }}
+                      style={{ accentColor: "var(--accent)" }} aria-label="Select all suppliers"
                     />
                   </th>
                   <th>{t("suppliers.table.supplier")}</th>
@@ -323,7 +325,7 @@ export default function SuppliersPage() {
                           type="checkbox"
                           checked={selectedIds.includes(s.id)}
                           onChange={() => toggleSelect(s.id)}
-                          style={{ accentColor: "var(--accent)" }}
+                          style={{ accentColor: "var(--accent)" }} aria-label={`Select ${s.name}`}
                         />
                       </td>
                       <td>
@@ -393,17 +395,14 @@ export default function SuppliersPage() {
                             <button
                               onClick={() => navigate(`/suppliers/${s.id}/edit`)}
                               className="btn-icon edit"
-                              title={t("common.edit")}
+                              title={t("common.edit")} aria-label={t("common.edit")}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm(t("suppliers.deleteConfirm")))
-                                  deleteMutation.mutate(s.id);
-                              }}
+                              onClick={() => setDeleteConfirmId(s.id)}
                               className="btn-icon danger"
-                              title={t("common.delete")}
+                              title={t("common.delete")} aria-label={t("common.delete")}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -430,7 +429,7 @@ export default function SuppliersPage() {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p: number) => p - 1)}
-                  className="page-nav"
+                  className="page-nav" aria-label="Previous page"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -462,7 +461,7 @@ export default function SuppliersPage() {
                 <button
                   disabled={page >= meta.last_page}
                   onClick={() => setPage((p: number) => p + 1)}
-                  className="page-nav"
+                  className="page-nav" aria-label="Next page"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -517,7 +516,7 @@ export default function SuppliersPage() {
                     type="checkbox"
                     checked={selectedIds.includes(s.id)}
                     onChange={() => toggleSelect(s.id)}
-                    style={{ accentColor: "var(--accent)", width: "1.25rem", height: "1.25rem", cursor: "pointer" }}
+                    style={{ accentColor: "var(--accent)", width: "1.25rem", height: "1.25rem", cursor: "pointer" }} aria-label={`Select ${s.name}`}
                   />
                 </div>
                 <div className="card-body" style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -587,23 +586,20 @@ export default function SuppliersPage() {
                       borderBottomRightRadius: "var(--radius)",
                     }}
                   >
-                    <button
-                      onClick={() => navigate(`/suppliers/${s.id}/edit`)}
-                      className="btn-icon edit"
-                      title={t("common.edit")}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(t("suppliers.deleteConfirm")))
-                          deleteMutation.mutate(s.id);
-                      }}
-                      className="btn-icon danger"
-                      title={t("common.delete")}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              <button
+                onClick={() => navigate(`/suppliers/${s.id}/edit`)}
+                className="btn-icon edit"
+                title={t("common.edit")} aria-label={t("common.edit")}
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setDeleteConfirmId(s.id)}
+                className="btn-icon danger"
+                title={t("common.delete")} aria-label={t("common.delete")}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
                   </div>
                 )}
               </div>
@@ -663,6 +659,19 @@ export default function SuppliersPage() {
         </div>
       </Modal>
 
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId !== null) deleteMutation.mutate(deleteConfirmId);
+        }}
+        title={t("common.delete")}
+        message={t("suppliers.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -45,6 +45,10 @@ const id = {
     no: 'Tidak',
     chooseFile: 'Pilih File',
     change: 'Ganti',
+    transactions: 'Transaksi',
+    selected: 'terpilih',
+    to: 'ke',
+    error: 'Error',
   },
 
   nav: {
@@ -68,6 +72,12 @@ const id = {
     promotions: 'Promo',
     roleManagement: 'Manajemen Role',
     collapseSidebar: 'Perkecil Sidebar',
+    sectionOperational: 'Operasional',
+    sectionCatalog: 'Katalog',
+    sectionRelations: 'Relasi',
+    sectionInventory: 'Inventori',
+    sectionReports: 'Laporan',
+    sectionSystem: 'Sistem',
   },
 
   login: {
@@ -82,6 +92,10 @@ const id = {
     demoHint: 'Demo: admin@pos.test / password',
     success: 'Login berhasil',
     failed: 'Login gagal',
+    emailRequired: 'Email wajib diisi',
+    emailInvalid: 'Format email tidak valid',
+    passwordRequired: 'Password wajib diisi',
+    passwordMinLength: 'Password minimal 6 karakter',
   },
 
   dashboard: {
@@ -169,6 +183,7 @@ const id = {
       low: 'Stok Menipis',
     },
     filters: {
+      allCategories: 'Semua Kategori',
       allStatus: 'Semua Status',
       active: 'Aktif',
       inactive: 'Tidak Aktif',
@@ -177,6 +192,9 @@ const id = {
       stockLow: 'Hampir Habis (≤ Min)',
       stockReady: 'Tersedia (> Min)',
     },
+    toggleColumns: 'Atur kolom tabel',
+    columns: 'Kolom tabel',
+    columnsExtra: 'Kolom tambahan',
     table: {
       image: 'Gambar',
       name: 'Nama',
@@ -187,6 +205,7 @@ const id = {
       buyPrice: 'Harga Beli',
       sellPrice: 'Harga Jual',
       stock: 'Stok',
+      createdAt: 'Tanggal Dibuat',
     },
     loading: 'Memuat produk...',
     empty: 'Belum ada produk',
@@ -370,6 +389,8 @@ const id = {
     receiptTitle: 'Struk Pembayaran',
     changeLabel: 'Kembalian:',
     noProducts: 'Tidak ada produk ditemukan',
+    searchPlaceholder: 'Cari produk (nama / SKU / barcode)...',
+    stockAvailable: 'Stok tersedia',
     cartTitle: 'Keranjang',
     addCustomer: '+ Tambah Pelanggan',
     reselectCustomer: '(pilih ulang)',
@@ -398,6 +419,22 @@ const id = {
     subtotal: 'Subtotal',
     discount: 'Diskon',
     total: 'Total',
+    cashInsufficient: 'Jumlah pembayaran kurang dari total',
+    categoryFilter: 'Filter kategori',
+    clearCartTitle: 'Kosongkan Keranjang',
+    clearCartMessage: 'Semua item di keranjang akan dihapus. Lanjutkan?',
+    clearCartConfirm: 'Ya, Kosongkan',
+    checkoutConfirmTitle: 'Konfirmasi Pembayaran',
+    checkoutConfirmMessage: 'Proses pembayaran sebesar',
+    cashRequired: 'Nominal tunai wajib diisi',
+    paymentMethod: 'Metode Pembayaran',
+    print: 'Cetak',
+    processing: 'Memproses…',
+    stockOut: 'HABIS',
+    stockLow: 'LOW',
+    promoLabel: 'PROMO',
+    bundleLabel: 'B2G1',
+    bundleFree: '+1 GRATIS',
   },
 
   users: {
@@ -605,6 +642,7 @@ const id = {
   purchaseOrders: {
     title: 'Purchase Orders',
     subtitle: 'Kelola pesanan pembelian ke supplier',
+    searchPo: 'Cari No. PO...',
     add: 'Buat PO',
     table: {
       poNumber: 'PO Number',
@@ -612,6 +650,14 @@ const id = {
       total: 'Total',
       status: 'Status',
       date: 'Tanggal',
+      items: 'Item',
+      product: 'Produk',
+    },
+    stats: {
+      grandTotal: 'Grand Total Pembelian',
+      maxTotal: 'Total Pembelian Terbesar',
+      completed: 'Total PO Selesai',
+      sent: 'PO Harus Dikirim',
     },
     loading: 'Memuat...',
     empty: 'Belum ada purchase order',
@@ -707,6 +753,7 @@ const id = {
     title: 'Crop Foto',
     cancel: 'Batal',
     save: 'Simpan',
+    zoom: 'Perbesar',
   },
 
   roles: {

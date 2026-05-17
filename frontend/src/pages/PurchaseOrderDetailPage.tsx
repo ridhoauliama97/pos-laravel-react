@@ -16,6 +16,8 @@ import {
 import { useT } from "../i18n";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { useState } from "react";
 
 interface POItem {
   id: number;
@@ -61,6 +63,7 @@ export default function PurchaseOrderDetailPage() {
   const t = useT();
   const { hasPermission } = usePermissions();
   const canEdit = hasPermission(PERMISSIONS.PURCHASE_ORDERS_EDIT);
+  const [receiveConfirmOpen, setReceiveConfirmOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["purchase-order", id],
@@ -83,6 +86,7 @@ export default function PurchaseOrderDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      setReceiveConfirmOpen(false);
       toast.success(t("purchaseOrders.received"));
     },
     onError: (err: Error) => toast.error(err.message),
@@ -141,7 +145,7 @@ export default function PurchaseOrderDetailPage() {
           marginBottom: ".5rem",
           padding: ".25rem .5rem",
           fontSize: ".8125rem",
-        }}
+        }} aria-label={t("purchaseOrderDetail.back")}
       >
         <ArrowLeft className="w-4 h-4" /> {t("purchaseOrderDetail.back")}
       </button>
@@ -194,7 +198,7 @@ export default function PurchaseOrderDetailPage() {
               <button
                 onClick={() => sendMutation.mutate()}
                 disabled={sendMutation.isPending}
-                className="btn btn-primary"
+                className="btn btn-primary" aria-label={t("purchaseOrders.sendButton")}
               >
                 <Send className="w-4 h-4" />{" "}
                 {sendMutation.isPending
@@ -204,13 +208,10 @@ export default function PurchaseOrderDetailPage() {
             )}
             {(po.status === "sent" || po.status === "partial") && canEdit && (
               <button
-                onClick={() => {
-                  if (confirm(t("purchaseOrders.receiveAllConfirm")))
-                    receiveMutation.mutate();
-                }}
+                onClick={() => setReceiveConfirmOpen(true)}
                 disabled={receiveMutation.isPending}
                 className="btn"
-                style={{ background: "var(--success)", color: "#fff" }}
+                style={{ background: "var(--success)", color: "#fff" }} aria-label={t("purchaseOrders.receiveButton")}
               >
                 <CheckCircle className="w-4 h-4" />{" "}
                 {receiveMutation.isPending
@@ -234,12 +235,17 @@ export default function PurchaseOrderDetailPage() {
           {
             icon: Building2,
             label: t("purchaseOrderDetail.supplier"),
-            val: po.suppliers && po.suppliers.length > 0
-              ? po.suppliers.map((s: any) => s.name).join(", ")
-              : "—",
-            sub: po.suppliers && po.suppliers.length > 0
-              ? po.suppliers.map((s: any) => s.phone).filter(Boolean).join(", ")
-              : undefined,
+            val:
+              po.suppliers && po.suppliers.length > 0
+                ? po.suppliers.map((s: any) => s.name).join(", ")
+                : "—",
+            sub:
+              po.suppliers && po.suppliers.length > 0
+                ? po.suppliers
+                    .map((s: any) => s.phone)
+                    .filter(Boolean)
+                    .join(", ")
+                : undefined,
           },
           {
             icon: User,
@@ -476,6 +482,18 @@ export default function PurchaseOrderDetailPage() {
           </p>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={receiveConfirmOpen}
+        onClose={() => setReceiveConfirmOpen(false)}
+        onConfirm={() => receiveMutation.mutate()}
+        title={t("purchaseOrders.receive")}
+        message={t("purchaseOrders.receiveAllConfirm")}
+        confirmLabel={t("purchaseOrders.receiveButton")}
+        cancelLabel={t("common.cancel")}
+        variant="primary"
+        loading={receiveMutation.isPending}
+      />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import type { User, Role, UserActivityLog } from "../types";
 import { usePermissions } from "../hooks/usePermissions";
 import { PERMISSIONS } from "../constants/permissions";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Modal } from "../components/Modal";
 
 const ROLE_BADGE: Record<string, string> = {
@@ -44,6 +45,7 @@ export default function UsersPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [activityUserId, setActivityUserId] = useState<number | null>(null);
@@ -190,27 +192,27 @@ export default function UsersPage() {
             >
               <button
                 type="button"
-                className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
-                style={
-                  viewMode === "list"
-                    ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" }
-                    : {}
-                }
-                onClick={() => setViewMode("list")}
-                title="List View"
+                        className={`btn-icon ${viewMode === "list" ? "active" : ""}`}
+                        style={
+                          viewMode === "list"
+                            ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" }
+                            : {}
+                        }
+                        onClick={() => setViewMode("list")}
+                        title="List View" aria-label="List View" aria-pressed={viewMode === "list"}
               >
                 <List className="w-4 h-4" />
               </button>
               <button
                 type="button"
-                className={`btn-icon ${viewMode === "grid" ? "active" : ""}`}
-                style={
-                  viewMode === "grid"
-                    ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" }
-                    : {}
-                }
-                onClick={() => setViewMode("grid")}
-                title="Grid View"
+                        className={`btn-icon ${viewMode === "grid" ? "active" : ""}`}
+                        style={
+                          viewMode === "grid"
+                            ? { background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" }
+                            : {}
+                        }
+                        onClick={() => setViewMode("grid")}
+                        title="Grid View" aria-label="Grid View" aria-pressed={viewMode === "grid"}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
@@ -251,7 +253,7 @@ export default function UsersPage() {
             placeholder={t("users.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
+            className="search-input" aria-label={t("users.searchPlaceholder")}
           />
         </div>
 
@@ -260,7 +262,7 @@ export default function UsersPage() {
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             className="form-select"
-            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 2rem .35rem .75rem" }}
+            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 2rem .35rem .75rem" }} aria-label={t("users.filters.allRoles")}
           >
             <option value="">{t("users.filters.allRoles")}</option>
             {roles.map((r: Role) => (
@@ -272,7 +274,7 @@ export default function UsersPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="form-select"
-            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 2rem .35rem .75rem" }}
+            style={{ width: "auto", fontSize: ".8125rem", padding: ".35rem 2rem .35rem .75rem" }} aria-label={t("users.filters.allStatus")}
           >
             <option value="">{t("users.filters.allStatus")}</option>
             <option value="1">{t("common.active")}</option>
@@ -299,7 +301,7 @@ export default function UsersPage() {
                         }
                       }}
                       onChange={(e) => toggleSelectAll(e.target.checked)}
-                      style={{ accentColor: "var(--accent)" }}
+                      style={{ accentColor: "var(--accent)" }} aria-label="Select all users"
                     />
                   </th>
                   <th>{t("users.table.user")}</th>
@@ -347,7 +349,7 @@ export default function UsersPage() {
                           type="checkbox"
                           checked={selectedIds.includes(u.id)}
                           onChange={() => toggleSelect(u.id)}
-                          style={{ accentColor: "var(--accent)" }}
+                          style={{ accentColor: "var(--accent)" }} aria-label={`Select ${u.name}`}
                         />
                       </td>
                       <td>
@@ -396,24 +398,21 @@ export default function UsersPage() {
                               onClick={() => openActivity(u.id)}
                               className="btn-icon"
                               title={t("users.activityLog")}
-                              style={{ color: "var(--text-muted)" }}
+                              style={{ color: "var(--text-muted)" }} aria-label={t("users.activityLog")}
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => navigate(`/settings/users/${u.id}/edit`)}
                               className="btn-icon edit"
-                              title={t("common.edit")}
+                              title={t("common.edit")} aria-label={t("common.edit")}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm(t("users.deleteConfirm")))
-                                  deleteMutation.mutate(u.id);
-                              }}
+                              onClick={() => setDeleteConfirmId(u.id)}
                               className="btn-icon danger"
-                              title={t("common.delete")}
+                              title={t("common.delete")} aria-label={t("common.delete")}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -500,7 +499,7 @@ export default function UsersPage() {
                       width: "1.25rem",
                       height: "1.25rem",
                       cursor: "pointer",
-                    }}
+                    }} aria-label={`Select ${u.name}`}
                   />
                 </div>
                 <div
@@ -601,24 +600,21 @@ export default function UsersPage() {
                       onClick={() => openActivity(u.id)}
                       className="btn-icon"
                       title={t("users.activityLog")}
-                      style={{ color: "var(--text-muted)" }}
+                      style={{ color: "var(--text-muted)" }} aria-label={t("users.activityLog")}
                     >
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => navigate(`/settings/users/${u.id}/edit`)}
                       className="btn-icon edit"
-                      title={t("common.edit")}
+                      title={t("common.edit")} aria-label={t("common.edit")}
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(t("users.deleteConfirm")))
-                          deleteMutation.mutate(u.id);
-                      }}
+                      onClick={() => setDeleteConfirmId(u.id)}
                       className="btn-icon danger"
-                      title={t("common.delete")}
+                      title={t("common.delete")} aria-label={t("common.delete")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -873,6 +869,20 @@ export default function UsersPage() {
           )}
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId !== null) deleteMutation.mutate(deleteConfirmId);
+        }}
+        title={t("common.delete")}
+        message={t("users.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }
